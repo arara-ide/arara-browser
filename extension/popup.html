@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="pt-BR" data-mode="browser">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><!--CSP--><title>Arara | ChatGPT</title><link rel="stylesheet" href="popup.css"></head>
+<body><main>
+<header><img src="arara.svg" alt="" width="32" height="32"><div><strong>Arara Code</strong><span>ChatGPT</span></div><span id="connection" role="status">Desconectado</span></header>
+<h1>Seu ChatGPT na IDE</h1>
+<p>Use a cota do chat da sua conta. <strong>Mantenha o navegador aberto</strong> e o ChatGPT conectado.</p>
+
+<p class="browser-only">Na IDE, abra <strong>ChatGPT → Conexão com navegador</strong> e copie o código.</p>
+<label for="code">Código de conexão</label>
+<div class="code-field"><input id="code" type="password" autocomplete="off" spellcheck="false"><button id="show" class="secondary" aria-controls="code" aria-pressed="false">Mostrar</button></div>
+<div class="actions"><button id="connect" class="browser-only">Conectar</button><button id="copy" class="secondary">Copiar código</button><button id="disconnect" class="secondary" hidden>Desconectar</button></div>
+<p id="status" role="status" aria-live="polite"></p>
+<footer><button id="chatgpt" class="link">Abrir ChatGPT ↗</button><small>A IDE cuida das permissões e dos snapshots. Não feche a aba enquanto ela estiver trabalhando.</small><small id="update-status" role="status" aria-live="polite"></small><button id="update" class="secondary" hidden>Atualizar</button><small>Depois do download, extraia na mesma pasta e clique em Recarregar na tela de extensões. Você também pode atualizar a pasta pela IDE.</small></footer>
+</main><script src="updates.js"></script><script src="popup.js"></script></body></html>
