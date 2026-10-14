@@ -2,6 +2,52 @@
 
 Extensão Manifest V3, open source (MIT), que conecta a sessão do ChatGPT no Chrome/Edge ao Arara Code. O navegador mantém o login; a IDE executa ferramentas e controla permissões.
 
+## Integração independente: uso autorizado e responsabilidade
+
+### Natureza da extensão
+
+O Arara Browser é um conector independente entre a interface do ChatGPT no navegador e a IDE pareada. Ele pode interagir com elementos da página para enviar solicitações e obter respostas para a ponte local. **Não é uma API pública de automação do ChatGPT, um produto oficial da OpenAI ou uma declaração de autorização para automatizar o serviço.** Compatibilidade técnica e instalação em modo de desenvolvedor não equivalem à aprovação da OpenAI, do Google, da Microsoft ou de uma loja de extensões.
+
+ChatGPT, Codex, OpenAI, Chrome, Chromium, Google, Edge e Microsoft são nomes ou marcas dos respectivos titulares. O projeto não afirma afiliação, patrocínio, certificação, parceria ou endosso dessas organizações. Sua licença MIT cobre somente os direitos que os licenciantes podem conceder sobre o código distribuído; não licencia o ChatGPT, contas, modelos, marcas, conteúdo ou software de terceiros.
+
+### Conta paga não é autorização irrestrita
+
+O login é mantido pelo navegador e o acesso depende da conta e do serviço. Ter uma assinatura paga, usar a própria conta, não compartilhar credenciais, não revender acesso ou não pretender causar prejuízo **não dispensa o cumprimento dos termos da plataforma nem substitui autorização específica quando exigida**. A capacidade de enviar uma mensagem ou ler uma resposta não demonstra que o método utilizado é permitido.
+
+Antes de parear a extensão, confira os termos aplicáveis à sua modalidade de acesso, região, organização e finalidade. Os termos da OpenAI contêm restrições sobre extração automatizada ou programática de dados e resultados, bem como sobre contorno de limites e medidas de proteção. Não presuma que permissões para APIs, CLIs ou MCP se estendam à automação da interface web. O projeto não certifica que este conector ou todo fluxo que ele permite seja compatível com esses termos. Não use fluxos proibidos; se houver necessidade de autorização, obtenha-a diretamente do provedor antes do uso. [Termos da OpenAI](https://openai.com/policies/terms-of-use/).
+
+### Uso pretendido e condutas não autorizadas
+
+A finalidade do projeto é apoiar fluxos de trabalho autorizados com uma IDE controlada pelo usuário. Não use a extensão para contornar pagamento, autenticação, cotas, limites de uso, restrições de conta, recusas de segurança ou mecanismos de proteção. Trocar de aba, conversa, conta ou instalação não concede permissão para contornar uma restrição. O pareamento local tampouco autoriza acesso a arquivos, sistemas, contas ou dados de terceiros.
+
+Se um fluxo for restringido, gerar alerta de política ou exigir esclarecimento do provedor, interrompa-o e utilize os canais oficiais de suporte ou recurso. O projeto não garante proteção contra alertas, suspensão, encerramento de conta, revogação de acesso ou medidas adotadas por terceiros. Não oferece recuperação garantida de contas, créditos, histórico ou valores pagos aos provedores.
+
+### Dados, pareamento e ações da IDE
+
+Pareie somente com uma IDE sob seu controle e proteja o código de conexão, o computador e o perfil do navegador. O conector transmite solicitações e respostas entre a página e a IDE; a IDE pode executar ferramentas conforme as permissões concedidas nela. Verifique o conteúdo enviado, o contexto anexado e as ações autorizadas. Não transmita dados pessoais, segredos, código de clientes ou informações confidenciais sem as permissões necessárias.
+
+A manutenção dos cookies e do login no site, o transporte em loopback e os controles de pareamento não constituem promessa de segurança absoluta, isolamento contra um computador comprometido ou autorização contratual para acessar o serviço. Dados recebidos por serviços externos continuam sujeitos às políticas e contratos desses serviços. O usuário deve avaliar as configurações de privacidade e as regras da sua organização.
+
+### Compatibilidade, resultados e custos
+
+A interface do ChatGPT pode mudar sem aviso e quebrar leitura, envio, retomada, seleção de modelos ou cancelamento. Testes em páginas simuladas não certificam compatibilidade contínua com a página real nem conformidade contratual. Confira se uma mensagem foi enviada antes de repeti-la e revise respostas e ações automatizadas. Resultados de IA podem ser incorretos, inseguros ou exigir revisão de direitos e licenças. Mantenha backups; nenhuma integração substitui supervisão adequada.
+
+Planos, recursos, limites, cobrança e disponibilidade são definidos pelos provedores. Instalar esta extensão não inclui uma assinatura do ChatGPT, créditos, cotas adicionais ou garantia de qualquer modelo. Suporte ou contribuições ao Arara não modificam o contrato do usuário com a OpenAI ou com outros serviços.
+
+### Ausência de garantias e limites da responsabilidade
+
+Na máxima extensão permitida pela legislação aplicável, o software é fornecido no estado em que se encontra e conforme disponível, sem garantias expressas ou implícitas, incluindo qualidade comercial, adequação a uma finalidade, não violação de direitos, segurança absoluta, precisão, disponibilidade ou funcionamento ininterrupto. A distribuição segue a [licença MIT](LICENSE), preservadas as licenças dos componentes de terceiros.
+
+Na mesma extensão, autores, titulares, mantenedores e contribuidores não assumem responsabilidade por reclamações, danos ou perdas decorrentes do uso, mau uso ou impossibilidade de uso da extensão, incluindo perda ou exposição de dados, respostas ou ações incorretas, interrupção de trabalho, perda de lucros, custos de terceiros, restrições de conta ou mudanças dos serviços. A responsabilidade por dados fornecidos, permissões concedidas e usos escolhidos será determinada pelos contratos e pela legislação aplicáveis; este aviso não transfere ao usuário obrigações que a lei imponha aos próprios responsáveis pelo projeto.
+
+Este aviso não afasta responsabilidades legalmente inderrogáveis, direitos de consumidores ou de terceiros, nem impede titulares ou autoridades de exercerem seus direitos. Não garante imunidade jurídica aos mantenedores ou usuários, não concede autorização em nome de terceiros e não transforma usos proibidos em permitidos. Nenhuma declaração de boa intenção, ausência de prejuízo ou pagamento de assinatura substitui a análise dos termos e da legislação pertinentes.
+
+### Relatos e referências
+
+Questões de compatibilidade ou possíveis violações de direitos podem ser comunicadas pelos canais deste repositório, com identificação do componente e informações suficientes para análise. Não publique credenciais, conversas privadas ou dados pessoais em issues. Funcionalidades podem ser corrigidas, restringidas ou removidas; receber um relato não implica reconhecer responsabilidade ou garantir determinada solução.
+
+Consulte os [Termos de Uso](https://openai.com/policies/terms-of-use/), os [termos regionais europeus, quando aplicáveis](https://openai.com/policies/eu-terms-of-use/), os [Service Terms](https://openai.com/policies/service-terms/), as [Usage Policies](https://openai.com/policies/usage-policies/) e a [política de privacidade da OpenAI](https://openai.com/policies/privacy-policy/), além do contrato específico da sua organização. Esta lista é informativa; os documentos vigentes e o contrato efetivo prevalecem.
+
 ## Instalar
 
 Na IDE, abra **ChatGPT → Conexão com navegador → Salvar extensão…** e escolha uma pasta. A IDE baixa a release pública, verifica SHA-256 e abre `Arara-Browser`. No navegador, abra **Extensões → Modo do desenvolvedor → Carregar sem compactação** e selecione essa pasta.
