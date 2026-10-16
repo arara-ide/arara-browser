@@ -28,9 +28,17 @@ git switch -c feature/nome-da-tarefa
 
 Trabalho individual pode ser commitado diretamente em `development`. Use Conventional Commits e PRs para promover código a `main`. Após uma promoção ou hotfix, incorpore `main` em `development` por merge, preservando o histórico; não use force push nem mova tags publicadas.
 
-O CI valida pushes em `development`, `release/*` e `hotfix/*`, além dos PRs. Essas branches não publicam releases. Publicações continuam no fluxo de `main`, conforme a seção de releases deste repositório. As convenções de PR são regras de contribuição; não pressupõem proteção de branch configurada no GitHub.
+As GitHub Actions executam somente em `main`, para validar e distribuir releases. Não há gatilhos de Actions em `development`, branches temporárias, PRs ou tags. Faça a validação local antes do merge; execuções manuais também têm os jobs restritos a `main`. As convenções de PR são regras de contribuição; não pressupõem proteção de branch configurada no GitHub.
 
 Este repositório é público. Mantenha código privado, prompts internos e credenciais fora de todas as branches e PRs.
+
+## Conclusão de tarefas e autoria
+
+Uma tarefa em `feature/*`, `feat/*` ou `fix/*` só termina depois de validar e mesclar a branch na branch de destino definida pelo fluxo do repositório. Não deixe trabalho concluído isolado em uma branch: isso dificulta encontrar o código que realmente será distribuído e acumula branches obsoletas.
+
+Após confirmar o merge no remoto, apague a branch temporária no GitHub e localmente (`git branch -d <branch>`) e rode `git fetch --prune`. A exclusão automática após merge deve permanecer habilitada no GitHub. Nunca apague uma branch com commits ainda não integrados; informe a pendência ao responsável. Branches permanentes e branches de ambiente são preservadas. Merge de feature encerra a tarefa na linha de desenvolvimento; a promoção para distribuição segue o fluxo de release.
+
+Não cite assistentes, modelos ou serviços de IA como autores ou coautores de commits ou PRs. Não adicione trailers `Co-authored-by` para IA nem assinaturas de ferramentas de IA. A autoria fica com os responsáveis humanos; preserve atribuições humanas legítimas, licenças e avisos de terceiros. Esta regra vale para novos registros e não autoriza reescrever histórico publicado.
 
 ## Integração independente: uso autorizado e responsabilidade
 
@@ -111,7 +119,7 @@ O teste integrado com o executor privado fica no `arara-ai`: `ARARA_BROWSER_PATH
 
 ## Releases
 
-Atualize `version` em `package.json` e `extension/manifest.json` juntos, regenere o lockfile e descreva a versão em `RELEASE.md`. Push na `main` ou tag `vX.Y.Z` de um commit já integrado em `main` passa pela matriz completa antes de publicar o ZIP e `SHA256SUMS`. Versões publicadas são imutáveis: um novo push com a mesma versão só executa testes. A publicação começa em rascunho e só fica visível após os dois assets estarem disponíveis.
+Atualize `version` em `package.json` e `extension/manifest.json` juntos, regenere o lockfile e descreva a versão em `RELEASE.md`. Push na `main` passa pela matriz completa antes de publicar o ZIP e `SHA256SUMS`. Versões publicadas são imutáveis: um novo push com a mesma versão só executa testes. A publicação começa em rascunho e só fica visível após os dois assets estarem disponíveis.
 
 O ZIP é determinístico, contém arquivos na raiz e usa o método padrão STORE (sem compressão), aceito pelo instalador da IDE sem dependências de runtime. `dist/` não é versionado.
 
