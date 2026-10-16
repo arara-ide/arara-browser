@@ -128,3 +128,13 @@ O ZIP é determinístico, contém arquivos na raiz e usa o método padrão STORE
 HTTP autenticado somente em `127.0.0.1`; token de pareamento em memória de sessão. Identificadores de abas e URLs de conversas ficam no armazenamento local para retomada. Cookies e tokens do ChatGPT permanecem no site. Nenhum código remoto é executado. Uma entrega incerta não é reenviada automaticamente.
 
 Permissões: `storage` (sessão e vínculo de abas), `tabs` (conversas), `alarms` (ponte), acesso ao ChatGPT, loopback e API pública do GitHub (versões).
+
+## Revisão e segurança dos PRs
+
+A `main` exige pull request, resolução das conversas de revisão e preservação do histórico (sem force push). A proteção não concede exceção de push direto a administradores ou bots. A configuração inicial permite merge pelo mantenedor único sem exigir a aprovação de uma segunda pessoa; contribuições externas devem ser revisadas pelo mantenedor antes do merge.
+
+O CodeRabbit tem configuração em `.coderabbit.yaml` para resumos e revisão em português. Sua ativação depende da instalação do [GitHub App](https://github.com/apps/coderabbitai) somente neste repositório público. Não autorize acesso aos repositórios privados. O serviço oferece revisão gratuita para projetos open source; confira as condições ao instalar.
+
+Alertas do Dependabot, detecção de segredos e proteção de push com segredos estão habilitados. Análise automática ajuda a detectar vulnerabilidades e alterações suspeitas, mas não certifica ausência de malware, backdoors ou problemas de licença. Alterações em comandos, rede, instaladores, atualizadores e workflows exigem revisão humana cuidadosa.
+
+Os workflows de release não fazem push diretamente na `main`. Prepare mudanças de versão e changelog por PR antes de publicar.
