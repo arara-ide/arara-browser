@@ -2,6 +2,36 @@
 
 Extensão Manifest V3, open source (MIT), que conecta a sessão do ChatGPT no Chrome/Edge ao Arara Code. O navegador mantém o login; a IDE executa ferramentas e controla permissões.
 
+## Branches e contribuição
+
+A branch estável e padrão é `main`, seguindo a nomenclatura atual do GitHub. O trabalho diário fica em `development`; este é o checkout recomendado no notebook. Branches representam etapas do código, e não ambientes de execução.
+
+| Branch | Origem | Uso e destino |
+|---|---|---|
+| `main` | — | Código aprovado para distribuição; recebe PRs de `development`, `release/*` ou `hotfix/*`. |
+| `development` | `main` | Integração contínua e trabalho diário; recebe funcionalidades e correções. |
+| `feature/<assunto>` | `development` | Funcionalidade isolada; PR para `development`. |
+| `fix/<assunto>` | `development` | Correção comum; PR para `development`. |
+| `release/<versao>` | `development` | Preparação opcional de versão; PR para `main`, seguido de sincronização com `development`. |
+| `hotfix/<assunto>` | `main` | Correção urgente de uma versão distribuída; PR para `main` e incorporação também em `development`. |
+
+Somente `main` e `development` são permanentes. Crie as demais quando houver trabalho concreto e remova-as após integrar seus commits. Branches anteriores à adoção deste fluxo são históricas: confira os commits antes de integrar ou excluir.
+
+Para trabalhar no notebook:
+
+```sh
+git switch development
+git pull --ff-only origin development
+# Opcional, para isolar uma tarefa:
+git switch -c feature/nome-da-tarefa
+```
+
+Trabalho individual pode ser commitado diretamente em `development`. Use Conventional Commits e PRs para promover código a `main`. Após uma promoção ou hotfix, incorpore `main` em `development` por merge, preservando o histórico; não use force push nem mova tags publicadas.
+
+O CI valida pushes em `development`, `release/*` e `hotfix/*`, além dos PRs. Essas branches não publicam releases. Publicações continuam no fluxo de `main`, conforme a seção de releases deste repositório. As convenções de PR são regras de contribuição; não pressupõem proteção de branch configurada no GitHub.
+
+Este repositório é público. Mantenha código privado, prompts internos e credenciais fora de todas as branches e PRs.
+
 ## Integração independente: uso autorizado e responsabilidade
 
 ### Natureza da extensão
@@ -81,7 +111,7 @@ O teste integrado com o executor privado fica no `arara-ai`: `ARARA_BROWSER_PATH
 
 ## Releases
 
-Atualize `version` em `package.json` e `extension/manifest.json` juntos, regenere o lockfile e descreva a versão em `RELEASE.md`. Push na `main` ou tag `vX.Y.Z` passa pela matriz completa antes de publicar o ZIP e `SHA256SUMS`. Versões publicadas são imutáveis: um novo push com a mesma versão só executa testes. A publicação começa em rascunho e só fica visível após os dois assets estarem disponíveis.
+Atualize `version` em `package.json` e `extension/manifest.json` juntos, regenere o lockfile e descreva a versão em `RELEASE.md`. Push na `main` ou tag `vX.Y.Z` de um commit já integrado em `main` passa pela matriz completa antes de publicar o ZIP e `SHA256SUMS`. Versões publicadas são imutáveis: um novo push com a mesma versão só executa testes. A publicação começa em rascunho e só fica visível após os dois assets estarem disponíveis.
 
 O ZIP é determinístico, contém arquivos na raiz e usa o método padrão STORE (sem compressão), aceito pelo instalador da IDE sem dependências de runtime. `dist/` não é versionado.
 
