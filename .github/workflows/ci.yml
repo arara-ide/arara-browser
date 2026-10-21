@@ -1,7 +1,7 @@
 name: CI and release
 on:
   push:
-    branches: [main]
+    branches: [main, development]
   workflow_dispatch:
 permissions:
   contents: read
@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   test:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/development'
     strategy:
       fail-fast: false
       matrix:
@@ -30,6 +30,29 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:content
       - run: npm run test:compatibility
+
+  development-package:
+    needs: test
+    if: github.ref == 'refs/heads/development'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: arara-browser-development
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
   release:
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
