@@ -1,6 +1,8 @@
 # Arara Browser
 
-Extensão Manifest V3, open source (MIT), que conecta a sessão do ChatGPT no Chrome/Edge ao Arara Code. O navegador mantém o login; a IDE executa ferramentas e controla permissões.
+> **Repositório descontinuado e arquivado (21/10/2026).** O Arara Code passou a conversar com o ChatGPT de forma nativa, direto da IDE: login oficial pelo *Sign in with ChatGPT* (OAuth, escopo `chatgpt.tokens.use.direct`) e inferência pela Responses API, sem extensão de navegador. Com isso, este conector ficou ocioso: não é mais baixado, instalado nem exigido pela IDE. O repositório fica aqui apenas como referência histórica e está **arquivado** (somente leitura). Não há mais releases, builds ou manutenção. O conteúdo abaixo descreve o método antigo, preservado para registro.
+
+Extensão Manifest V3, open source (MIT), que conectava a sessão do ChatGPT no Chrome/Edge ao Arara Code. O navegador mantinha o login; a IDE executava ferramentas e controlava permissões. **Esse método foi substituído pela integração nativa descrita acima.**
 
 ## Branches e contribuição
 
