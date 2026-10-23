@@ -13,7 +13,7 @@ it('produces a reproducible installable ZIP with checksums and exactly the publi
   expect(readFileSync(`dist/${name}`).equals(first)).toBe(true);
   expect(readFileSync('dist/SHA256SUMS', 'utf8')).toBe(`${createHash('sha256').update(first).digest('hex')}  ${name}\n`);
   const files = unzipSync(first);
-  expect(Object.keys(files).sort()).toEqual([...readdirSync('extension'), 'LICENSE'].sort());
+  expect(Object.keys(files).sort()).toEqual([...readdirSync('extension', { recursive: true, withFileTypes: true }).filter(entry => entry.isFile()).map(entry => `${entry.parentPath}/${entry.name}`.replaceAll('\\', '/').replace(/^extension\//, '')), 'LICENSE'].sort());
   const manifest = JSON.parse(Buffer.from(files['manifest.json']).toString());
   expect(manifest.version).toBe(pkg.version);
   expect(manifest.manifest_version).toBe(3);

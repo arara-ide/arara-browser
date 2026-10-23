@@ -28,6 +28,7 @@ async function fixture(failReceipt = false, workTabBinding?: { id: number; url: 
   const updateTab = vi.fn(async () => ({ id: 7 }));
   const createTab = vi.fn(async () => ({ id: 7 }));
   const chrome = {
+    i18n: { getMessage: (key: string) => JSON.parse(readFileSync("extension/_locales/pt_BR/messages.json", "utf8"))[key]?.message ?? key },
     storage: { session: store(session), local: store(local) },
     tabs: { create: createTab, get: vi.fn(async (id: number) => ({ id, url: 'https://chatgpt.com/c/test' })), update: updateTab, sendMessage: vi.fn(async () => {}), remove: vi.fn(async () => {}), onRemoved: { addListener: vi.fn() } },
     runtime: { onMessage: { addListener: (fn: typeof listener) => { listener = fn; } } },

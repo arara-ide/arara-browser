@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Arara | Navegador",
+  "name": "__MSG_extensionName__",
   "version": "0.1.0",
-  "description": "Conecta a sess\u00e3o do ChatGPT no navegador ao chat da IDE Arara.",
+  "description": "__MSG_extensionDescription__",
   "permissions": [
     "storage",
     "tabs",
@@ -36,5 +36,6 @@
     "128": "icon.png"
   },
   "minimum_chrome_version": "120",
-  "homepage_url": "https://github.com/arara-ide/arara-browser"
+  "homepage_url": "https://github.com/arara-ide/arara-browser",
+  "default_locale": "en"
 }

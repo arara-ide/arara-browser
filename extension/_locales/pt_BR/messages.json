@@ -1,0 +1,131 @@
+{
+  "extensionName": {
+    "message": "Arara | Navegador"
+  },
+  "extensionDescription": {
+    "message": "Conecta a sessão do ChatGPT no navegador ao chat da IDE Arara."
+  },
+  "connected": {
+    "message": "Conectado"
+  },
+  "disconnected": {
+    "message": "Desconectado"
+  },
+  "headline": {
+    "message": "Seu ChatGPT na IDE"
+  },
+  "intro": {
+    "message": "Use a cota do chat da sua conta. Mantenha o navegador aberto e o ChatGPT conectado."
+  },
+  "instructions": {
+    "message": "Na IDE, abra ChatGPT → Conexão com navegador e copie o código."
+  },
+  "codeLabel": {
+    "message": "Código de conexão"
+  },
+  "show": {
+    "message": "Mostrar"
+  },
+  "hide": {
+    "message": "Ocultar"
+  },
+  "connect": {
+    "message": "Conectar"
+  },
+  "copy": {
+    "message": "Copiar código"
+  },
+  "disconnect": {
+    "message": "Desconectar"
+  },
+  "openChatGPT": {
+    "message": "Abrir ChatGPT ↗"
+  },
+  "permissions": {
+    "message": "A IDE cuida das permissões e dos snapshots. Não feche a aba enquanto ela estiver trabalhando."
+  },
+  "update": {
+    "message": "Atualizar"
+  },
+  "updateInstructions": {
+    "message": "Depois do download, extraia na mesma pasta e clique em Recarregar na tela de extensões. Você também pode atualizar a pasta pela IDE."
+  },
+  "copied": {
+    "message": "Código copiado."
+  },
+  "copyManually": {
+    "message": "Selecione o código e copie com Ctrl+C."
+  },
+  "disconnectedNotice": {
+    "message": "Desconectado."
+  },
+  "invalidCodeIde": {
+    "message": "Código inválido. Copie novamente na IDE."
+  },
+  "ready": {
+    "message": "Pronto. Volte ao chat na IDE."
+  },
+  "openIde": {
+    "message": "Abra a IDE e copie o código atual."
+  },
+  "checking": {
+    "message": "Versão $1 · Verificando atualização…"
+  },
+  "available": {
+    "message": "Versão $1 disponível."
+  },
+  "current": {
+    "message": "Versão $1 · Atualizada."
+  },
+  "updateFailed": {
+    "message": "Versão $1 · Não foi possível verificar. Abra novamente para tentar."
+  },
+  "connectFirst": {
+    "message": "Conecte a IDE primeiro."
+  },
+  "ideDisconnected": {
+    "message": "A IDE não está conectada."
+  },
+  "disconnectedByIde": {
+    "message": "Desconectado pela IDE. Copie o código atual."
+  },
+  "busy": {
+    "message": "O navegador ainda está atendendo outro pedido."
+  },
+  "noResponse": {
+    "message": "A extensão não respondeu nesta aba. Recarregue a extensão e a aba do ChatGPT."
+  },
+  "tabFailed": {
+    "message": "Não foi possível abrir a aba do ChatGPT."
+  },
+  "invalidCode": {
+    "message": "Código inválido."
+  },
+  "stopFirst": {
+    "message": "Interrompa o pedido atual antes de trocar a conexão."
+  },
+  "userDisconnected": {
+    "message": "Navegador desconectado pelo usuário."
+  },
+  "reloaded": {
+    "message": "A página foi recarregada depois da entrega. Nenhuma mensagem foi reenviada; confira a conversa no navegador."
+  },
+  "tabClosed": {
+    "message": "A aba do ChatGPT foi fechada antes da confirmação. Nenhuma mensagem foi reenviada."
+  },
+  "cancelled": {
+    "message": "Interrompido."
+  },
+  "notReady": {
+    "message": "O ChatGPT não está pronto. Confira o login e a página no navegador."
+  },
+  "modelUnavailable": {
+    "message": "Modelo indisponível nesta conversa. Atualize os modelos."
+  },
+  "unconfirmed": {
+    "message": "Não foi possível confirmar o fim da resposta. Nenhuma ação executada."
+  },
+  "documentBusy": {
+    "message": "Document busy"
+  }
+}

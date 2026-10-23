@@ -1,9 +1,11 @@
+document.documentElement.lang = chrome.i18n.getUILanguage();
+for (const element of document.querySelectorAll('[data-i18n]')) element.textContent = chrome.i18n.getMessage(element.dataset.i18n);
 const q = id => document.getElementById(id);
 const encode = value => btoa(JSON.stringify(value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 function render({ code, connected, notice }) {
   if (code !== undefined) q('code').value = code;
   if (connected !== undefined) {
-    q('connection').textContent = connected ? 'Conectado' : 'Desconectado';
+    q('connection').textContent = connected ? chrome.i18n.getMessage('connected') : chrome.i18n.getMessage('disconnected');
     q('connection').dataset.connected = String(connected);
     q('disconnect').hidden = !connected && !q('code').value;
   }
@@ -14,25 +16,25 @@ const action = type => chrome.runtime.sendMessage({ type });
 q('show').onclick = () => {
   const show = q('code').type === 'password';
   q('code').type = show ? 'text' : 'password';
-  q('show').textContent = show ? 'Ocultar' : 'Mostrar';
+  q('show').textContent = show ? chrome.i18n.getMessage('hide') : chrome.i18n.getMessage('show');
   q('show').setAttribute('aria-pressed', String(show));
 };
 q('copy').onclick = async () => {
-  try { await navigator.clipboard.writeText(q('code').value); render({ notice: 'Código copiado.' }); }
-  catch { render({ notice: 'Selecione o código e copie com Ctrl+C.' }); }
+  try { await navigator.clipboard.writeText(q('code').value); render({ notice: chrome.i18n.getMessage('copied') }); }
+  catch { render({ notice: chrome.i18n.getMessage('copyManually') }); }
 };
 q('code').oninput = () => { q('copy').disabled = !q('code').value; };
 q('chatgpt').onclick = () => chrome.tabs.create({ url: 'https://chatgpt.com/' });
 q('disconnect').onclick = async () => {
-  await action('disconnect'); render({ code: '', connected: false, notice: 'Desconectado.' });
+  await action('disconnect'); render({ code: '', connected: false, notice: chrome.i18n.getMessage('disconnectedNotice') });
 };
 q('connect').onclick = async () => {
   q('connect').disabled = true;
   try {
     const connection = JSON.parse(atob(q('code').value.trim().replace(/-/g, '+').replace(/_/g, '/')));
-    if (!Number.isInteger(connection.port) || connection.port < 1 || connection.port > 65535 || !/^[\w-]{40,100}$/.test(connection.token)) throw new Error('Código inválido. Copie novamente na IDE.');
+    if (!Number.isInteger(connection.port) || connection.port < 1 || connection.port > 65535 || !/^[\w-]{40,100}$/.test(connection.token)) throw new Error(chrome.i18n.getMessage('invalidCodeIde'));
     const result = await chrome.runtime.sendMessage({ type: 'connect', connection });
-    render({ connected: result.ok, notice: result.ok ? 'Pronto. Volte ao chat na IDE.' : result.error || 'Abra a IDE e copie o código atual.' });
+    render({ connected: result.ok, notice: result.ok ? chrome.i18n.getMessage('ready') : result.error || chrome.i18n.getMessage('openIde') });
   } catch (error) { render({ connected: false, notice: error.message }); }
   finally { q('connect').disabled = false; }
 };
@@ -46,14 +48,14 @@ q('connect').onclick = async () => {
 
 async function checkUpdate() {
   const current = chrome.runtime.getManifest().version;
-  q('update-status').textContent = `Versão ${current} · Verificando atualização…`;
+  q('update-status').textContent = chrome.i18n.getMessage('checking', String(current));
   try {
     const update = await AraraUpdates.check(current);
-    q('update-status').textContent = update ? `Versão ${update.version} disponível.` : `Versão ${current} · Atualizada.`;
+    q('update-status').textContent = update ? chrome.i18n.getMessage('available', String(update.version)) : chrome.i18n.getMessage('current', String(current));
     q('update').hidden = !update;
     if (update) q('update').onclick = () => chrome.tabs.create({ url: update.url });
   } catch {
-    q('update-status').textContent = `Versão ${current} · Não foi possível verificar. Abra novamente para tentar.`;
+    q('update-status').textContent = chrome.i18n.getMessage('updateFailed', String(current));
   }
 }
 void checkUpdate();
