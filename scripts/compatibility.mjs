@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 import { mkdtemp, rm, readFile, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { resolve, join } from 'node:path';
+import { resolve, join, dirname } from 'node:path';
 import { unzipSync } from 'fflate';
 import assert from 'node:assert/strict';
 
@@ -11,7 +11,8 @@ await mkdir(extension);
 const pkg = JSON.parse(await readFile('package.json', 'utf8'));
 const zip = await readFile(`dist/arara-browser-${pkg.version}.zip`);
 for (const [name, contents] of Object.entries(unzipSync(zip))) {
-  assert.match(name, /^[A-Za-z0-9][A-Za-z0-9._-]*$/);
+  assert.match(name, /^(?:[A-Za-z0-9][A-Za-z0-9._-]*|_locales\/(?:en|pt_BR|es)\/messages\.json)$/);
+  await mkdir(dirname(join(extension, name)), { recursive: true });
   await writeFile(join(extension, name), contents);
 }
 const manifest = JSON.parse(await readFile(join(extension, 'manifest.json'), 'utf8'));
@@ -37,12 +38,12 @@ try {
   assert.equal(await page.evaluate(() => window.downloadUrl), release.assets[0].browser_download_url);
   release = { tag_name: `v${manifest.version}`, assets: [] };
   await page.reload();
-  await page.waitForFunction(() => document.querySelector('#update-status').textContent.includes('Atualizada'));
+  await page.waitForFunction(() => document.querySelector('#update-status').textContent === chrome.i18n.getMessage('current', chrome.runtime.getManifest().version));
   assert.equal(await page.locator('#update').isVisible(), false);
   await context.unroute('https://api.github.com/**');
   await context.route('https://api.github.com/**', route => route.fulfill({ status: 403, body: 'rate limit' }));
   await page.reload();
-  await page.waitForFunction(() => document.querySelector('#update-status').textContent.includes('Não foi possível'));
+  await page.waitForFunction(() => document.querySelector('#update-status').textContent === chrome.i18n.getMessage('updateFailed', chrome.runtime.getManifest().version));
   assert.equal(await page.locator('#connect').isEnabled(), true);
   assert.deepEqual(errors, []);
   console.log(`Manifest V3, service worker, popup and update flow: PASS (Chromium ${context.browser().version()})`);

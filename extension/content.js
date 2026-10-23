@@ -9,7 +9,7 @@ const visible = element => {
 async function waitFor(find, timeout = 20000, interval = 250) {
   const end = Date.now() + timeout;
   while (Date.now() < end && !cancelled) { const value = find(); if (value) return value; await delay(interval); }
-  throw new Error(cancelled ? 'Interrompido.' : 'O ChatGPT não está pronto. Confira o login e a página no navegador.');
+  throw new Error(cancelled ? chrome.i18n.getMessage('cancelled') : chrome.i18n.getMessage('notReady'));
 }
 const firstVisible = selector => [...document.querySelectorAll(selector)].find(visible);
 const composer = () => firstVisible('#prompt-textarea, form[data-chatgpt-composer] [contenteditable="true"][role="textbox"]');
@@ -41,7 +41,7 @@ async function choose(findTrigger, label) {
       .find(e => visible(e) && e.getAttribute('aria-disabled') !== 'true' && e.innerText.trim() === label));
   } catch (error) {
     if (cancelled) throw error;
-    throw new Error('Modelo indisponível nesta conversa. Atualize os modelos.');
+    throw new Error(chrome.i18n.getMessage('modelUnavailable'));
   }
   element.click(); await delay(400);
 }
@@ -104,7 +104,7 @@ async function execute(job) {
       if (!labels.length) { await delay(1000); continue; }
       return { models: labels.map(label => ({ id: label, name: label, vendor: 'chatgpt-web', description: 'Modelo oferecido pelo ChatGPT no navegador.', ...(efforts.length ? { reasoning: { efforts } } : {}) })) };
     }
-    throw new Error('Interrompido.');
+    throw new Error(chrome.i18n.getMessage('cancelled'));
   }
   await choose(modelTrigger, job.model);
   if (job.effort) await choose(effortTrigger, job.effort);
@@ -121,7 +121,7 @@ async function execute(job) {
   }
   const before = new Map(assistantRows().map(row => [responseKey(row), assistantText(row)]));
   const send = await waitFor(() => { const button = sendButton(); return visible(button) && !button.disabled ? button : null; });
-  if (cancelled) throw new Error('Interrompido.');
+  if (cancelled) throw new Error(chrome.i18n.getMessage('cancelled'));
   send.click();
   // Never click Send twice. A lost confirmation remains uncertain.
   const responseNow = () => assistantRows().filter(row => {
@@ -143,7 +143,7 @@ async function execute(job) {
     if (quietSince && Date.now() - quietSince >= 4000) return { text };
     await delay(250);
   }
-  throw new Error(cancelled ? 'Interrompido.' : 'Não foi possível confirmar o fim da resposta. Nenhuma ação executada.');
+  throw new Error(cancelled ? chrome.i18n.getMessage('cancelled') : chrome.i18n.getMessage('unconfirmed'));
 }
 let runningJob, lastJob;
 async function runJob(job) {

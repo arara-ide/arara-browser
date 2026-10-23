@@ -1,3 +1,13 @@
+## Internacionalização e localização — obrigatório
+
+- Toda interface deve oferecer português (`pt-BR`/`pt`), inglês (`en`) e espanhol (`es`), com mensagens em arquivos de tradução estruturados. Toda alteração futura em texto visível exige atualizar os três catálogos na mesma mudança, inclusive títulos, comandos, configurações, validações, notificações, estados vazios e nomes acessíveis.
+- Não misture idiomas, concatene fragmentos traduzidos nem traduza identificadores, comandos, caminhos, marcas, conteúdo do usuário ou contratos de ferramentas. Use mensagens completas com parâmetros; preserve os mesmos parâmetros e chaves nos três idiomas e trate plurais quando necessário.
+- Datas, horas, números, percentuais e moedas seguem o locale efetivo com `Intl`; moeda, fuso e valores dos dados não mudam com o idioma. Não fixe `pt-BR` em formatadores da interface.
+- Verifique paridade de chaves/parâmetros, fallback e variantes regionais, além dos testes/builds pertinentes. Catálogo incompleto ou texto ainda fixo deve ser informado como pendência, nunca declarado traduzido.
+- Esta é uma extensão de navegador Manifest V3: use `chrome.i18n` e `_locales/{en,pt_BR,es}/messages.json`, com idioma do navegador e fallback definido em `default_locale`. Não adicione scripts remotos nem dependências de runtime. Traduza popup, manifesto e mensagens exibidas ao usuário, preservando protocolo e seletores externos.
+
+- Catálogos e validação: `extension/_locales/{en,pt_BR,es}/messages.json`; use `chrome.i18n`, `data-i18n` e `__MSG_*__` no manifesto. Valide com `npm test && npm run build && npm run test:compatibility`.
+
 # Arara Browser
 
 Repositório público MIT. Nunca incluir código do agente, prompts internos, credenciais ou arquivos dos repositórios privados. Commits/push conforme autorização do usuário.
@@ -6,7 +16,7 @@ A extensão fica em `extension/`; não adicionar dependências de runtime ou scr
 
 Versões em package.json e manifest.json devem coincidir. Execute npm test, npm run build, npm run test:content e npm run test:compatibility. A suíte de navegador usa páginas simuladas; não declarar compatibilidade com a interface real do ChatGPT sem teste manual.
 
-O ZIP público usa arquivos planos com método STORE; mudanças do formato de distribuição precisam ser coordenadas com o instalador no arara-ai.
+O ZIP público usa método STORE, arquivos planos de runtime e somente `_locales/{en,pt_BR,es}/messages.json` como subpastas permitidas; mudanças do formato de distribuição precisam ser coordenadas com o instalador no arara-ai.
 
 ## Fluxo de branches
 

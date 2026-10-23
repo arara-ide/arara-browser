@@ -29,6 +29,7 @@ const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'arara-chatgpt-qa-'));
    };
   });
   await page.evaluate(()=>{const model=document.querySelector('#model');model.hidden=true;setTimeout(()=>model.hidden=false,2100)});
+  await page.evaluate(messages => { window.chrome.i18n = { getMessage: key => messages[key]?.message ?? key }; }, JSON.parse(fs.readFileSync(path.join(browserRoot, "extension/_locales/pt_BR/messages.json"), "utf8")));
   await page.addScriptTag({content:'{'+fs.readFileSync(path.join(browserRoot, 'extension/content.js'),'utf8')+'; window.isJobRunning = () => !!runningJob;}'});
   await page.waitForFunction(()=>window.results.length===1,{},{timeout:10000});
   const models=await page.evaluate(()=>window.results[0].result.models);

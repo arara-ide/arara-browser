@@ -1,9 +1,9 @@
 let polling, worker, active, browserTab, handed, completed, workTab;
 async function api(path, data) {
   const { connection } = await chrome.storage.session.get('connection');
-  if (!connection) throw new Error('Conecte a IDE primeiro.');
+  if (!connection) throw new Error(chrome.i18n.getMessage('connectFirst'));
   const response = await fetch(`http://127.0.0.1:${connection.port}${path}`, { method: 'POST', headers: { authorization: `Bearer ${connection.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ worker, ...data }), signal: AbortSignal.timeout(12000) });
-  if (!response.ok) throw new Error('A IDE não está conectada.');
+  if (!response.ok) throw new Error(chrome.i18n.getMessage('ideDisconnected'));
   return response.json();
 }
 async function clearWork() {
@@ -52,8 +52,8 @@ async function runPoll() {
         await chrome.tabs.sendMessage(tabId, { type: 'cancel', id: cancel }).catch(() => {});
       }
     }
-    if (disconnected) { await clearWork(); await chrome.storage.session.remove(['connection']); throw new Error('Desconectado pela IDE. Copie o código atual.'); }
-    if (job && active) await api('/result', { id: job.id, result: { error: 'O navegador ainda está atendendo outro pedido.' } });
+    if (disconnected) { await clearWork(); await chrome.storage.session.remove(['connection']); throw new Error(chrome.i18n.getMessage('disconnectedByIde')); }
+    if (job && active) await api('/result', { id: job.id, result: { error: chrome.i18n.getMessage('busy') } });
     if (job && !active) {
       active = job; handed = null;
       try {
@@ -76,12 +76,12 @@ async function runPoll() {
           handed = job.id;
           await chrome.storage.session.set({ handed });
           await chrome.tabs.sendMessage(tab.id, { type: 'job', job: active }).then(receipt => {
-            if (receipt?.ok === false) throw new Error('Document busy');
+            if (receipt?.ok === false) throw new Error(chrome.i18n.getMessage('documentBusy'));
           }).catch(async () => {
-            if (active?.id === job.id && !completed) await saveResult(job.id, { error: 'A extensão não respondeu nesta aba. Recarregue a extensão e a aba do ChatGPT.' });
+            if (active?.id === job.id && !completed) await saveResult(job.id, { error: chrome.i18n.getMessage('noResponse') });
           });
         }
-      } catch { await saveResult(job.id, { error: 'Não foi possível abrir a aba do ChatGPT.' }); }
+      } catch { await saveResult(job.id, { error: chrome.i18n.getMessage('tabFailed') }); }
     }
     await chrome.storage.session.set({ connectionStatus: { ok: true, time: Date.now() } });
     return { ok: true };
@@ -96,10 +96,10 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   if (!sender.tab && message.type === 'connect') {
     void (async () => {
       const connection = message.connection;
-      if (!connection || !Number.isInteger(connection.port) || connection.port < 1 || connection.port > 65535 || !/^[\w-]{40,100}$/.test(connection.token)) return reply({ ok: false, error: 'Código inválido.' });
+      if (!connection || !Number.isInteger(connection.port) || connection.port < 1 || connection.port > 65535 || !/^[\w-]{40,100}$/.test(connection.token)) return reply({ ok: false, error: chrome.i18n.getMessage('invalidCode') });
       await polling;
       const previous = (await chrome.storage.session.get('connection')).connection;
-      if (active && (previous?.port !== connection.port || previous?.token !== connection.token)) return reply({ ok: false, error: 'Interrompa o pedido atual antes de trocar a conexão.' });
+      if (active && (previous?.port !== connection.port || previous?.token !== connection.token)) return reply({ ok: false, error: chrome.i18n.getMessage('stopFirst') });
       await chrome.storage.session.set({ connection });
       reply(await poll());
     })().catch(error => reply({ ok: false, error: error.message }));
@@ -110,7 +110,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
       await polling;
       if (active) {
         await chrome.tabs.sendMessage(browserTab, { type: 'cancel', id: active.id }).catch(() => {});
-        await api('/result', { id: active.id, result: { error: 'Navegador desconectado pelo usuário.' } }).catch(() => {});
+        await api('/result', { id: active.id, result: { error: chrome.i18n.getMessage('userDisconnected') } }).catch(() => {});
       }
       await clearWork();
       await chrome.storage.session.remove(['connection', 'connectionStatus']);
@@ -122,7 +122,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     if (message.type === 'ready') {
       if (handed === active.id) {
         reply({ job: null });
-        if (!completed) void saveResult(active.id, { error: 'A página foi recarregada depois da entrega. Nenhuma mensagem foi reenviada; confira a conversa no navegador.' }).then(() => poll());
+        if (!completed) void saveResult(active.id, { error: chrome.i18n.getMessage('reloaded') }).then(() => poll());
       } else {
         handed = active.id;
         chrome.storage.session.set({ handed }).then(() => reply({ job: active }));
@@ -153,7 +153,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   return true;
 });
 chrome.tabs.onRemoved.addListener(tabId => {
-  void initialized.then(() => { if (tabId === browserTab && active && !completed) void saveResult(active.id, { error: 'A aba do ChatGPT foi fechada antes da confirmação. Nenhuma mensagem foi reenviada.' }).then(() => poll()); });
+  void initialized.then(() => { if (tabId === browserTab && active && !completed) void saveResult(active.id, { error: chrome.i18n.getMessage('tabClosed') }).then(() => poll()); });
 });
 const initialized = (async () => {
   const saved = await chrome.storage.session.get(['active', 'browserTab', 'handed', 'completed', 'workTab']);
