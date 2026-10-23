@@ -1,17 +1,16 @@
 name: CI and release
 on:
   push:
-    branches: [main]
-    tags: ['v*']
-  pull_request:
+    branches: [main, development]
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
   group: browser-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 jobs:
   test:
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/development'
     strategy:
       fail-fast: false
       matrix:
@@ -31,9 +30,32 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:content
       - run: npm run test:compatibility
+
+  development-package:
+    needs: test
+    if: github.ref == 'refs/heads/development'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: arara-browser-development
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
   release:
     needs: test
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -43,6 +65,11 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Verify release belongs to main
+        shell: bash
+        run: git merge-base --is-ancestor HEAD origin/main
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
@@ -56,10 +83,6 @@ jobs:
         run: |
           version=$(node -p "require('./package.json').version")
           tag="v${version}"
-          if [[ "$GITHUB_REF" == refs/tags/* && "$GITHUB_REF_NAME" != "$tag" ]]; then
-            echo 'Tag and package version differ' >&2
-            exit 1
-          fi
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft' > /tmp/release-state; then
             if [[ $(cat /tmp/release-state) == false ]]; then
               echo "Release $tag already published; increment package.json and manifest.json for a new release."
