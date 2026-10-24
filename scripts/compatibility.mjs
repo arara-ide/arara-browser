@@ -32,7 +32,6 @@ try {
   await page.goto(`chrome-extension://${id}/popup.html`);
   await page.locator('#update:not([hidden])').waitFor();
   assert.match(await page.locator('#update-status').innerText(), /99\.0\.0/);
-  // Observe the actual chrome.tabs API call without starting a real download in CI.
   await page.evaluate(() => { chrome.tabs.create = async ({ url }) => { window.downloadUrl = url; }; });
   await page.locator('#update').click();
   assert.equal(await page.evaluate(() => window.downloadUrl), release.assets[0].browser_download_url);

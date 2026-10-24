@@ -20,7 +20,6 @@ async function bindings() {
   return conversationBindings;
 }
 async function rememberWorkTab(tab, contextId) {
-  // This is a tab/conversation pointer, not a credential. Pairing stays in session storage.
   if (tab?.id && /^https:\/\/chatgpt\.com\/(?:.*\/)?c\/[^/?#]+/.test(tab.url ?? '')) {
     const { workTabBinding } = await chrome.storage.local.get('workTabBinding');
     const previousContext = workTabBinding?.id === tab.id && workTabBinding.url === tab.url ? workTabBinding.contextId : undefined;
@@ -40,7 +39,6 @@ async function runPoll() {
     if (!worker) { worker = crypto.randomUUID(); await chrome.storage.local.set({ worker }); }
     const { job, cancel, disconnected } = await api('/poll', { contexts: Object.keys(await bindings()) });
     if (completed && !disconnected) {
-      // Retrying the receipt never sends another ChatGPT message.
       await api('/result', completed);
       await clearWork();
     }
@@ -71,7 +69,6 @@ async function runPoll() {
         browserTab = workTab = tab.id;
         await chrome.storage.session.set({ active, browserTab, workTab });
         await rememberWorkTab(tab);
-        // Jobs use the existing document. A loading document will pick up at ready.
         if (reuse && tab.status !== 'loading') {
           handed = job.id;
           await chrome.storage.session.set({ handed });
@@ -86,7 +83,6 @@ async function runPoll() {
     await chrome.storage.session.set({ connectionStatus: { ok: true, time: Date.now() } });
     return { ok: true };
   } catch (error) {
-    // Preserve admitted work; retrying a receipt never resends a prompt.
     await chrome.storage.session.set({ connectionStatus: { ok: false, time: Date.now() } });
     return { ok: false, error: error.message };
   }
