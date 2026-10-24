@@ -57,10 +57,8 @@ const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'arara-chatgpt-qa-'));
   assert.equal(await page.evaluate(()=>window.sendCount),2);
   assert.equal(await page.locator('#answers article').count(),2);
   assert.equal(await page.locator('#model').innerText(),'Thinking');
-  // Duplicate delivery must not send the same job again.
   await page.evaluate(()=>window.contentListener({type:'job',job:{id:'send-2',kind:'send',model:'Thinking',prompt:'Duplicate'}},{},()=>{}));
   assert.equal(await page.evaluate(()=>window.sendCount),2);
-  // Cancel while waiting for an enabled send button, then accept a fresh job.
   await page.evaluate(()=>{
     window.results=[];
     document.querySelector('form [data-testid="send-button"]').disabled=true;

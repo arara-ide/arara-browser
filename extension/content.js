@@ -1,4 +1,3 @@
-// DOM-only transport: no cookies, ChatGPT credentials, or private HTTP endpoints.
 let cancelled = false;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const visible = element => {
@@ -34,7 +33,6 @@ async function choose(findTrigger, label) {
   const trigger = await waitFor(() => { const element = findTrigger(); return visible(element) ? element : null; });
   if (trigger.innerText.trim() === label) return;
   if (trigger.getAttribute('aria-expanded') !== 'true') trigger.click();
-  // Slow React menus can mount well after the click. Keep waiting in this document.
   let element;
   try {
     element = await waitFor(() => [...document.querySelectorAll('[role="menuitem"], [role="menuitemradio"], [role="option"]')]
@@ -57,14 +55,12 @@ function proseText(part) {
   if (blocks.length === 1) {
     const remainder = part.cloneNode(true);
     for (const chrome of remainder.querySelectorAll('pre, button, [role="button"], .sr-only')) chrome.remove();
-    // A fenced transport envelope has a language/copy toolbar outside <code>.
     if (!remainder.textContent.trim()) return blocks[0].textContent.trim();
   }
   return part.innerText.trim();
 }
 function assistantText(row) {
   const parts = row.matches(proseSelector) ? [row] : [...row.querySelectorAll(proseSelector)];
-  // Read authored content, never the surrounding "ChatGPT disse" heading or action bar.
   const outer = parts.filter(part => !part.closest('[data-interrupted="true"]') && !parts.some(other => other !== part && other.contains(part)));
   if (outer.length) return outer.map(proseText).filter(Boolean).join('\n\n');
   if (!row.matches('[data-message-author-role="assistant"]')) return '';
@@ -97,7 +93,6 @@ async function execute(job) {
       const trigger = await waitFor(() => visible(modelTrigger()) ? modelTrigger() : null, 20 * 60_000, 1000);
       const selected = trigger?.innerText.trim();
       const rows = await choices(trigger);
-      // Only publish actual UI options; no guessed model IDs or efforts.
       const effort = effortTrigger();
       const efforts = effort && effort !== trigger ? (await choices(effort)).map(r => r.label) : [];
       const labels = [...new Set([selected, ...rows.map(r => r.label)].filter(Boolean))];
@@ -123,7 +118,6 @@ async function execute(job) {
   const send = await waitFor(() => { const button = sendButton(); return visible(button) && !button.disabled ? button : null; });
   if (cancelled) throw new Error(chrome.i18n.getMessage('cancelled'));
   send.click();
-  // Never click Send twice. A lost confirmation remains uncertain.
   const responseNow = () => assistantRows().filter(row => {
     const text = assistantText(row);
     return text && before.get(responseKey(row)) !== text;
@@ -134,8 +128,6 @@ async function execute(job) {
   for (let i = 0; i < 4800 && !cancelled; i++) {
     const current = responseNow();
     const text = current ? assistantText(current) : '';
-    // The complete transport envelope is a boundary even when ChatGPT renders no action bar.
-    // Still require Stop to stay absent: a transient pause must not execute partial work.
     const quiet = text && text === last && !stopButton() && (completeEnvelope(text) || hasCompletedActions(current));
     quietSince = quiet ? quietSince || Date.now() : 0;
     if (text && text !== last) await chrome.runtime.sendMessage({ type: 'progress', id: job.id, text });
@@ -153,7 +145,6 @@ async function runJob(job) {
     let result;
     try { result = await execute(job); } catch (error) { result = { error: error.message }; }
     const stopped = cancelled;
-    // Release the document before acknowledging: the IDE can immediately request the next tool step.
     runningJob = undefined;
     if (!stopped) await chrome.runtime.sendMessage({ type: 'result', id: job.id, result });
   } finally { if (runningJob === job.id) runningJob = undefined; }
@@ -166,7 +157,6 @@ chrome.runtime.onMessage.addListener((message, _sender, reply) => {
   }
 });
 (async () => {
-  // DOM ready can race the tab-created event in the worker.
   await delay(500);
   const response = await chrome.runtime.sendMessage({ type: 'ready' });
   await runJob(response?.job);
