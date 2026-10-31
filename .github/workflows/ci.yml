@@ -84,14 +84,14 @@ jobs:
         run: |
           version=$(node -p "require('./package.json').version")
           if [[ -z "$AMO_JWT_ISSUER" || -z "$AMO_JWT_SECRET" ]]; then
-            echo "::warning::AMO_JWT_ISSUER/AMO_JWT_SECRET not set: no signed Firefox package in this release."
+            echo "::notice::AMO_JWT_ISSUER/AMO_JWT_SECRET not set: the Firefox package stays unsigned (temporary add-on for testing)."
             exit 0
           fi
           npx --yes web-ext@8 sign --source-dir extension --artifacts-dir dist/firefox --channel unlisted --api-key "$AMO_JWT_ISSUER" --api-secret "$AMO_JWT_SECRET" --timeout 900000
           signed=$(ls dist/firefox/*.xpi | head -n 1)
           mv "$signed" "dist/arara-browser-${version}.xpi"
           node scripts/firefox-updates.mjs "$version" > dist/updates.json
-          (cd dist && sha256sum "arara-browser-${version}.xpi" >> SHA256SUMS)
+          (cd dist && grep -v " arara-browser-${version}.xpi$" SHA256SUMS > SHA256SUMS.tmp && sha256sum "arara-browser-${version}.xpi" >> SHA256SUMS.tmp && mv SHA256SUMS.tmp SHA256SUMS)
       - name: Publish verified ZIP and checksums
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -107,7 +107,7 @@ jobs:
           else
             gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --title "Arara Browser $version" --notes-file RELEASE.md
           fi
-          assets=("dist/arara-browser-${version}.zip" dist/SHA256SUMS)
-          [[ -f "dist/arara-browser-${version}.xpi" ]] && assets+=("dist/arara-browser-${version}.xpi" dist/updates.json)
+          assets=("dist/arara-browser-${version}.zip" "dist/arara-browser-${version}.xpi" dist/SHA256SUMS)
+          [[ -f dist/updates.json ]] && assets+=(dist/updates.json)
           gh release upload "$tag" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --clobber
           gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --latest

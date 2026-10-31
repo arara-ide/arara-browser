@@ -156,7 +156,7 @@
     "message": "O hazlo a mano: descarga el paquete, descomprímelo encima de la carpeta de la extensión (reemplazando los archivos) y haz clic en Recargar en la página de extensiones."
   },
   "outdatedManualFirefox": {
-    "message": "Firefox la actualiza solo en un día como máximo. Para actualizar ahora, descarga el archivo y arrástralo a una ventana de Firefox."
+    "message": "Firefox: descarga el archivo nuevo, abre about:debugging, ve a Este Firefox, haz clic en Cargar complemento temporal y elígelo."
   },
   "outdatedDownload": {
     "message": "Descargar actualización"

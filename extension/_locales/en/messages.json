@@ -156,7 +156,7 @@
     "message": "Or do it by hand: download the package, unzip it on top of the extension folder (replace the files) and click Reload on the extensions page."
   },
   "outdatedManualFirefox": {
-    "message": "Firefox updates it by itself within a day. To update now, download the file and drag it into a Firefox window."
+    "message": "Firefox: download the new file, open about:debugging, go to This Firefox, click Load Temporary Add-on and choose it."
   },
   "outdatedDownload": {
     "message": "Download update"

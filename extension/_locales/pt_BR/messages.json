@@ -156,7 +156,7 @@
     "message": "Ou faça na mão: baixe o pacote, descompacte por cima da pasta da extensão (substituindo os arquivos) e clique em Recarregar na página de extensões."
   },
   "outdatedManualFirefox": {
-    "message": "O Firefox atualiza sozinho em até um dia. Para atualizar agora, baixe o arquivo e arraste para uma janela do Firefox."
+    "message": "Firefox: baixe o arquivo novo, abra about:debugging, vá em Este Firefox, clique em Carregar extensão temporária e escolha o arquivo."
   },
   "outdatedDownload": {
     "message": "Baixar atualização"

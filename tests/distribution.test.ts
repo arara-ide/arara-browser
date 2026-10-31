@@ -11,7 +11,9 @@ it('produces a reproducible installable ZIP with checksums and exactly the publi
   const first = readFileSync(`dist/${name}`);
   execFileSync(process.execPath, ['scripts/build.mjs']);
   expect(readFileSync(`dist/${name}`).equals(first)).toBe(true);
-  expect(readFileSync('dist/SHA256SUMS', 'utf8')).toBe(`${createHash('sha256').update(first).digest('hex')}  ${name}\n`);
+  const hash = createHash('sha256').update(first).digest('hex');
+  expect(readFileSync('dist/SHA256SUMS', 'utf8')).toBe(`${hash}  ${name}\n${hash}  arara-browser-${pkg.version}.xpi\n`);
+  expect(readFileSync(`dist/arara-browser-${pkg.version}.xpi`).equals(first)).toBe(true);
   const files = unzipSync(first);
   expect(Object.keys(files).sort()).toEqual([...readdirSync('extension', { recursive: true, withFileTypes: true }).filter(entry => entry.isFile()).map(entry => `${entry.parentPath}/${entry.name}`.replaceAll('\\', '/').replace(/^extension\//, '')), 'LICENSE'].sort());
   const manifest = JSON.parse(Buffer.from(files['manifest.json']).toString());
