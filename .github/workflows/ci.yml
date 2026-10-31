@@ -45,6 +45,15 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --ignore-scripts
+      - name: Warn when the next main push would not publish a release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          tag="v$(node -p "require('./package.json').version")"
+          if [[ $(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft' 2>/dev/null) == false ]]; then
+            echo "::warning title=Version already released::$tag is already published. Increment package.json and extension/manifest.json, or the merge to main will fail the release job."
+          fi
       - run: npm run build
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -101,8 +110,8 @@ jobs:
           tag="v${version}"
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft' > /tmp/release-state; then
             if [[ $(cat /tmp/release-state) == false ]]; then
-              echo "Release $tag already published; increment package.json and manifest.json for a new release."
-              exit 0
+              echo "::error title=Release not published::$tag is already published. Increment the version in package.json and extension/manifest.json before promoting to main."
+              exit 1
             fi
           else
             gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --title "Arara Browser $version" --notes-file RELEASE.md
