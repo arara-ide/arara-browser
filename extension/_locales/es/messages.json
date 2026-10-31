@@ -12,13 +12,13 @@
     "message": "Desconectado"
   },
   "headline": {
-    "message": "Tu ChatGPT en la IDE"
+    "message": "Conecta tu navegador a Arara Code"
   },
   "intro": {
-    "message": "Usa la cuota de chat de tu cuenta. Mantén el navegador abierto y la sesión de ChatGPT iniciada."
+    "message": "La IA de Arara Code trabaja en tus pestañas, y ChatGPT se convierte en un chat en la IDE."
   },
   "instructions": {
-    "message": "En la IDE, abre ChatGPT → Conexión con el navegador y copia el código."
+    "message": "Copia el código en Configuración de Arara › Arara Browser y pégalo aquí."
   },
   "codeLabel": {
     "message": "Código de conexión"
@@ -32,41 +32,29 @@
   "connect": {
     "message": "Conectar"
   },
-  "copy": {
-    "message": "Copiar código"
-  },
   "disconnect": {
     "message": "Desconectar"
   },
-  "openChatGPT": {
-    "message": "Abrir ChatGPT ↗"
-  },
   "permissions": {
-    "message": "La IDE gestiona los permisos y las instantáneas. Mantén la pestaña abierta mientras trabaja."
+    "message": "Deja el navegador abierto mientras la IA trabaja."
   },
   "update": {
     "message": "Actualizar"
   },
   "updateInstructions": {
-    "message": "Tras la descarga, extrae en la misma carpeta y pulsa Recargar en la página de extensiones. También puedes actualizar la carpeta desde la IDE."
-  },
-  "copied": {
-    "message": "Código copiado."
-  },
-  "copyManually": {
-    "message": "Selecciona el código y cópialo con Ctrl+C."
+    "message": "Para actualizar, haz clic en Actualizar en Configuración de Arara › Arara Browser."
   },
   "disconnectedNotice": {
     "message": "Desconectado."
   },
   "invalidCodeIde": {
-    "message": "Código no válido. Cópialo de nuevo desde la IDE."
+    "message": "Código no válido. Cópialo de nuevo en Arara Code."
   },
   "ready": {
-    "message": "Listo. Vuelve al chat de la IDE."
+    "message": "Conectado. Vuelve a Arara Code."
   },
   "openIde": {
-    "message": "Abre la IDE y copia el código actual."
+    "message": "Abre Arara Code y copia el código de nuevo."
   },
   "checking": {
     "message": "Versión $1 · Buscando actualizaciones…"
@@ -129,7 +117,7 @@
     "message": "Documento ocupado"
   },
   "agentIntro": {
-    "message": "Menciona “Tu navegador” en el chat de Arara Code y la IA trabaja en tus pestañas abiertas, con su cursor visible."
+    "message": "Para usarlo, escribe @ en el chat y elige Tu navegador."
   },
   "allowSites": {
     "message": "Permitir todos los sitios"

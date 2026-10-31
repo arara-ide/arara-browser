@@ -19,27 +19,33 @@
   const cursor = globalThis.AraraCursor;
   let reading = 0;
   const notify = (at, action) => chrome.runtime.sendMessage({ type: 'agentCursor', x: at.x, y: at.y, action }).catch(() => {});
-  const CHASE_DURING_SCROLL = 0.5;
-  async function cursorAt(element, action) {
+  const CHASE_DURING_SCROLL = 0.5, MAX_CLICKS = 40, BETWEEN_CLICKS_MS = 120;
+  async function approach(element) {
     reading++;
     const aim = aimAt(element);
     const { moving, settled } = reveal(element);
     if (moving && cursor) await cursor.chase(aim, settled, Math.random() < CHASE_DURING_SCROLL ? 0 : 180 + Math.random() * 220);
     else await settled;
+    return aim;
+  }
+  async function cursorAt(element, action) {
+    const aim = await approach(element);
     const at = aim();
-    void notify(at, action);
     await cursor?.moveTo(at.x, at.y);
     if (action === 'click') await cursor?.press();
-    drift(element);
+    void notify(at, action);
     return at;
   }
+  const contains = (box, at) => at.x >= box.left && at.x <= box.left + box.width && at.y >= box.top && at.y <= box.top + box.height;
   function drift(element) {
     const delay = cursor?.driftDelay();
     if (delay === null || delay === undefined) return;
     const run = reading;
     setTimeout(() => {
       if (run !== reading || !cursor.visible || !element.isConnected) return;
-      const at = pointIn(element.getBoundingClientRect());
+      const box = element.getBoundingClientRect();
+      if (!contains(box, cursor.position)) return;
+      const at = pointIn(box);
       if (!at) return;
       void cursor.moveTo(at.x, at.y, 0.7).then(() => { if (run === reading) void notify(at, 'move'); });
     }, delay);
@@ -71,18 +77,46 @@
     }
     if (run === reading && cursor) void notify(cursor.position, 'move');
   }
+  const clickTargets = args => {
+    const list = Array.isArray(args.uids) ? args.uids.map(uid => ({ uid })) : Array.isArray(args.elements) ? args.elements : null;
+    return list ?? [args];
+  };
+  async function clickAll(args) {
+    const targets = clickTargets(args), total = targets.length, count = args.dblClick ? 2 : 1;
+    if (!total) throw new Error('click needs uid, selector, uids or elements.');
+    let done = 0, last = null;
+    try {
+      for (const item of targets.slice(0, MAX_CLICKS)) {
+        let target;
+        try { target = required(find(item), 'click'); }
+        catch (error) { throw new Error(done ? `Clicked ${done} of ${total}. ${error.message}` : error.message); }
+        if (done) await input.delay(BETWEEN_CLICKS_MS);
+        const { x, y } = await cursorAt(target, 'click');
+        input.click(target, x, y, count);
+        done++; last = target;
+      }
+    } finally { if (args.marked) for (const node of document.querySelectorAll('[data-arara-click]')) node.removeAttribute('data-arara-click'); }
+    const rest = total - done;
+    return { last, text: total === 1 ? '' : rest ? `Clicked ${done} of ${total}; call click again for the remaining ${rest}.` : `Clicked ${done} elements, one by one.` };
+  }
   async function run(action, args = {}) {
+    if (action === 'click') {
+      const { last, text } = await clickAll(args);
+      await input.delay(300);
+      drift(last);
+      return `click done.${text ? ` ${text}` : ''} ${describe(last)}\nurl: ${location.href}\ntitle: ${document.title}`;
+    }
     const element = find(args);
+    let last = null;
     switch (action) {
-      case 'read': { if (element) { reading++; await reveal(element).settled; } void follow(element); return read(element); }
-      case 'take_snapshot': { void follow(element); return snapshot(element ?? document.body); }
-      case 'click': { const target = required(element, action); const { x, y } = await cursorAt(target, 'click'); input.click(target, x, y, args.dblClick ? 2 : 1); break; }
-      case 'hover': { const target = required(element, action); const { x, y } = await cursorAt(target, 'move'); input.hover(target, x, y); break; }
-      case 'fill': { const target = required(element, action); await cursorAt(target, 'type'); await input.fill(target, String(args.value ?? '')); break; }
+      case 'read': { if (element) await approach(element); void follow(element); return read(element); }
+      case 'take_snapshot': { if (element) await approach(element); void follow(element); return snapshot(element ?? document.body); }
+      case 'hover': { const target = required(element, action); const { x, y } = await cursorAt(target, 'move'); input.hover(target, x, y); last = target; break; }
+      case 'fill': { const target = required(element, action); await cursorAt(target, 'type'); await input.fill(target, String(args.value ?? '')); last = target; break; }
       case 'fill_form': {
         const items = Array.isArray(args.elements) ? args.elements : [];
         const step = input.typingStep(items.reduce((sum, item) => sum + String(item.value ?? '').length, 0));
-        for (const item of items) { const field = required(find(item), action); await cursorAt(field, 'type'); await input.fill(field, String(item.value ?? ''), step); }
+        for (const item of items) { const field = required(find(item), action); await cursorAt(field, 'type'); await input.fill(field, String(item.value ?? ''), step); last = field; }
         break;
       }
       case 'press_key': reading++; input.key(args.key ?? 'Enter', element ?? undefined); break;
@@ -96,6 +130,7 @@
       default: throw new Error(`Unsupported action ${action}.`);
     }
     await input.delay(300);
+    if (last) drift(last);
     return `${action} done.${element ? ` ${describe(element)}` : ''}\nurl: ${location.href}\ntitle: ${document.title}`;
   }
   chrome.runtime.onMessage.addListener((message, sender, reply) => {

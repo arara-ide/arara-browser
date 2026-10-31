@@ -44,6 +44,16 @@ try {
   await page.reload();
   await page.waitForFunction(() => document.querySelector('#update-status').textContent === chrome.i18n.getMessage('updateFailed', chrome.runtime.getManifest().version));
   assert.equal(await page.locator('#connect').isEnabled(), true);
+  const message = key => page.evaluate(name => chrome.i18n.getMessage(name), key);
+  assert.equal(await page.locator('#copy, #disconnect, #chatgpt').count(), 0, 'one connection button, no copy or ChatGPT buttons');
+  assert.equal(await page.locator('#connect').innerText(), await message('connect'));
+  assert.equal(await page.locator('.code-field button').count(), 0, 'Show sits below the field');
+  await worker.evaluate(() => chrome.storage.session.set({ connectionStatus: { ok: true, time: Date.now() } }));
+  await page.waitForFunction(text => document.querySelector('#connect').textContent === text, await message('disconnect'));
+  assert.equal(await page.locator('#connect').evaluate(node => node.classList.contains('secondary')), true);
+  await page.locator('#connect').click();
+  await page.waitForFunction(text => document.querySelector('#connect').textContent === text, await message('connect'));
+  assert.equal(await page.locator('#status').innerText(), await message('disconnectedNotice'));
   await worker.evaluate(() => chrome.storage.local.set({ releaseCheck: { current: chrome.runtime.getManifest().version, checked: Date.now(), update: null } }));
   await page.locator('#outdated').waitFor({ state: 'hidden' });
   const zipUrl = 'https://github.com/arara-ide/arara-browser/releases/download/v99.0.0/arara-browser-99.0.0.zip';
@@ -56,5 +66,5 @@ try {
   await worker.evaluate(() => chrome.storage.local.set({ releaseCheck: { current: chrome.runtime.getManifest().version, checked: Date.now(), update: null } }));
   await page.locator('#outdated').waitFor({ state: 'hidden', timeout: 8000 });
   assert.deepEqual(errors, []);
-  console.log(`Manifest V3, service worker, popup and update flow: PASS (Chromium ${context.browser().version()})`);
+  console.log(`Manifest V3, service worker, popup (single Connect/Disconnect button) and update flow: PASS (Chromium ${context.browser().version()})`);
 } finally { await context.close(); await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); }

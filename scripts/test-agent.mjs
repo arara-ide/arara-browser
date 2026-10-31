@@ -9,7 +9,8 @@ import assert from 'node:assert/strict';
 const listen = server => new Promise(resolve => server.listen(0, '127.0.0.1', () => resolve(server.address().port)));
 const PAGE = '<!doctype html><title>Form</title><h1>Agent test</h1><input id="name" aria-label="Name"><button id="go" onclick="document.querySelector(\'#out\').textContent=\'Hello \'+document.querySelector(\'#name\').value;console.log(\'clicked\')">Greet</button><p id="out"></p>';
 const LONG = '<!doctype html><title>Long</title><div style="height:2400px">Top</div><button id="far" onclick="this.textContent=\'Done\'">Far away</button><div style="height:1200px"></div>';
-const site = createServer((req, res) => res.writeHead(200, { 'content-type': 'text/html' }).end(req.url.includes('long') ? LONG : PAGE));
+const MANY = '<!doctype html><title>Many</title><button id="a" onclick="this.dataset.n=(+this.dataset.n||0)+1" style="margin:40px">First</button><button id="b" onclick="this.dataset.n=(+this.dataset.n||0)+1" style="margin:40px 300px">Second</button><div style="height:2200px"></div><button id="c" onclick="this.dataset.n=(+this.dataset.n||0)+1">Third</button><div style="height:1500px"></div>';
+const site = createServer((req, res) => res.writeHead(200, { 'content-type': 'text/html' }).end(req.url.includes('many') ? MANY : req.url.includes('long') ? LONG : PAGE));
 const sitePort = await listen(site);
 const queue = [], results = new Map();
 const token = 'a'.repeat(48);
@@ -51,7 +52,7 @@ try {
   const typingStarted = Date.now();
   assert.ok(!(await run('fill', { uid: field, value: 'Arara' })).error);
   const typingMs = Date.now() - typingStarted;
-  assert.ok(typingMs >= 5 * 80, `typing finished after the 700 cpm animation (${typingMs} ms)`);
+  assert.ok(typingMs >= 5 * 25, `typing finished after the 2000 cpm animation (${typingMs} ms)`);
   assert.equal(await first.locator('#name').inputValue(), 'Arara');
   assert.ok(!(await run('click', { uid: button })).error);
   assert.equal(await first.locator('#out').innerText(), 'Hello Arara');
@@ -73,6 +74,52 @@ try {
   assert.ok(await far.evaluate(() => scrollY) > 1500, 'scrolled to the button');
   assert.ok(await far.evaluate(() => { const box = document.querySelector('#far').getBoundingClientRect(); return box.top >= 0 && box.bottom <= innerHeight; }), 'button visible when the click returned');
   assert.ok(scrollMs >= 300, `the click waited for the smooth scroll and the cursor (${scrollMs} ms)`);
+  const many = await context.newPage(); await many.goto(`${url}many`);
+  await many.bringToFront();
+  const manyId = Number(/pageId=(\d+) Many/.exec((await run('list_pages')).text)?.[1]);
+  await run('select_page', { pageId: manyId, bringToFront: false });
+  const manySnapshot = (await run('take_snapshot')).text;
+  const manyUid = name => new RegExp(`uid=(u\\d+) button "${name}"`).exec(manySnapshot)?.[1];
+  const manyTab = await worker.evaluate(() => chrome.tabs.query({ title: 'Many' }).then(tabs => tabs[0].id));
+  const isolated = func => worker.evaluate(([tabId, source]) => chrome.scripting.executeScript({ target: { tabId }, func: new Function(`return (${source})()`) }).then(result => result[0].result), [manyTab, func.toString()]);
+  await isolated(() => {
+    const cursor = globalThis.AraraCursor; globalThis.__events = [];
+    for (const name of ['moveTo', 'press']) { const original = cursor[name]; cursor[name] = (...args) => { const done = original(...args); Promise.resolve(done).then(() => __events.push({ kind: name, x: cursor.position.x, y: cursor.position.y })); return done; }; }
+    document.addEventListener('click', event => __events.push({ kind: 'click', id: event.target.id, x: cursor.position.x, y: cursor.position.y, scrollY: Math.round(scrollY) }), true);
+    return true;
+  });
+  const events = () => isolated(() => globalThis.__events.splice(0));
+  const animatedClicks = list => {
+    const clicks = list.filter(event => event.kind === 'click');
+    for (const click of clicks) {
+      const before = list.slice(0, list.indexOf(click));
+      const press = before.findLast(event => event.kind === 'press'), move = before.findLast(event => event.kind === 'moveTo');
+      assert.ok(press && move && before.lastIndexOf(press) > before.lastIndexOf(clicks[clicks.indexOf(click) - 1] ?? {}), `cursor moved and pressed before clicking ${click.id}: ${JSON.stringify(list)}`);
+      assert.deepEqual([press.x, press.y], [click.x, click.y], `click on ${click.id} happens where the cursor landed`);
+    }
+    return clicks;
+  };
+  assert.match((await run('click', { uids: [manyUid('First'), manyUid('Third'), manyUid('Second')] })).text, /Clicked 3 elements, one by one/);
+  const ordered = animatedClicks(await events());
+  assert.deepEqual(ordered.map(click => click.id), ['a', 'c', 'b'], 'one by one, in the requested order');
+  assert.ok(ordered[1].scrollY > 1500 && ordered[2].scrollY < ordered[1].scrollY, 'scrolled to each element before its click');
+  assert.deepEqual(await many.evaluate(() => ['a', 'b', 'c'].map(id => document.getElementById(id).dataset.n)), ['1', '1', '1']);
+  const scripted = await run('evaluate_script', { function: "() => { document.querySelectorAll('button').forEach(button => button.click()); document.querySelector('#a').dispatchEvent(new MouseEvent('click', { bubbles: true })); return 4; }" });
+  assert.match(scripted.text, /^4\nThe script's clicks were made afterwards by the cursor, one by one: click done\. Clicked 4 elements, one by one\./);
+  assert.deepEqual(animatedClicks(await events()).map(click => click.id), ['a', 'b', 'c', 'a'], 'clicks from evaluate_script also go through the cursor');
+  assert.deepEqual(await many.evaluate(() => ['a', 'b', 'c'].map(id => document.getElementById(id).dataset.n)), ['3', '2', '2']);
+  assert.equal(await many.locator('[data-arara-click]').count(), 0, 'temporary markers are removed');
+  await run('read', { selector: '#a' });
+  await many.waitForFunction(() => scrollY < 50);
+  await isolated(() => { globalThis.__chase = []; const cursor = globalThis.AraraCursor, original = cursor.chase; cursor.chase = (...args) => { const start = { ...cursor.position }; const done = original(...args); globalThis.__chase.push({ start, scrollY: Math.round(scrollY) }); done.then(() => globalThis.__chase.push({ end: { ...cursor.position }, scrollY: Math.round(scrollY) })); return done; }; return true; });
+  const readStarted = Date.now();
+  assert.match((await run('read', { selector: '#c' })).text, /Third/);
+  assert.ok(Date.now() - readStarted >= 300, 'read waited for the smooth scroll');
+  assert.ok(await many.evaluate(() => { const box = document.querySelector('#c').getBoundingClientRect(); return box.top >= 0 && box.bottom <= innerHeight; }), 'element visible after read');
+  const chase = await isolated(() => globalThis.__chase);
+  assert.equal(chase.length, 2, `cursor chased the element during the scroll: ${JSON.stringify(chase)}`);
+  assert.ok(chase[0].scrollY < 100 && chase[1].scrollY > 1500, 'chase spans the whole scroll');
+  await events();
   const farTab = await worker.evaluate(() => chrome.tabs.query({ title: 'Long' }).then(tabs => tabs[0].id));
   await worker.evaluate(id => chrome.tabs.setZoom(id, 2), farTab);
   assert.equal(await worker.evaluate(id => globalThis.AraraTabs.hello(id).then(state => state.zoom), farTab), 2);
@@ -80,7 +127,7 @@ try {
   await run('select_page', { pageId: firstId, bringToFront: false });
   const shot = await run('take_screenshot');
   assert.equal(shot.images?.[0]?.mimeType, 'image/png');
-  console.log(`Agent in the user's tabs (snapshot, fill, click, read, console, script, screenshot, cursor in 2 tabs, smooth scroll before click, zoom-aware size): PASS (Chromium ${context.browser()?.version() ?? ''})`);
+  console.log(`Agent in the user's tabs (snapshot, fill, click, read, console, script, screenshot, cursor in 2 tabs, smooth scroll before click, several clicks one by one with scroll, script clicks through the cursor, read with smooth scroll and cursor chase, zoom-aware size): PASS (Chromium ${context.browser()?.version() ?? ''})`);
 } finally {
   await context.close(); site.close(); ide.close();
   await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });

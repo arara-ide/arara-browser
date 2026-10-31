@@ -70,12 +70,29 @@
   }
   async function evaluate(args) {
     const tab = await current();
-    const [result] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, world: 'MAIN', args: [String(args.function ?? args.script ?? '')], func: async source => {
-      try { const value = await (0, eval)(`(${source})`)(); return { value: JSON.stringify(value) ?? 'undefined' }; }
-      catch (error) { return { error: String(error?.message ?? error) }; }
+    const [result] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, world: 'MAIN', args: [String(args.function ?? args.script ?? ''), `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`], func: async (source, run) => {
+      const clicks = [], click = HTMLElement.prototype.click, dispatch = EventTarget.prototype.dispatchEvent;
+      const queue = element => {
+        if (!element.dataset.araraClick) element.dataset.araraClick = `${run}-${clicks.length}`;
+        clicks.push(`[data-arara-click="${element.dataset.araraClick}"]`);
+      };
+      HTMLElement.prototype.click = function () { queue(this); };
+      EventTarget.prototype.dispatchEvent = function (event) {
+        if (event?.type === 'click' && this instanceof Element) { queue(this); return true; }
+        return dispatch.call(this, event);
+      };
+      try { const value = await (0, eval)(`(${source})`)(); return { value: JSON.stringify(value) ?? 'undefined', clicks }; }
+      catch (error) { return { error: String(error?.message ?? error), clicks }; }
+      finally { HTMLElement.prototype.click = click; EventTarget.prototype.dispatchEvent = dispatch; }
     } });
-    if (result?.result?.error) throw new Error(result.result.error);
-    return String(result?.result?.value ?? 'undefined').slice(0, 40000);
+    const outcome = result?.result ?? {}, clicks = Array.isArray(outcome.clicks) ? outcome.clicks : [];
+    let replay = '';
+    if (clicks.length) {
+      replay = await inPage('click', { elements: clicks.map(selector => ({ selector })), marked: true }).then(text => text.split('\n')[0], error => `Clicks: ${error.message}`);
+      replay = `\nThe script's clicks were made afterwards by the cursor, one by one: ${replay}`;
+    }
+    if (outcome.error) throw new Error(outcome.error + replay);
+    return String(outcome.value ?? 'undefined').slice(0, 40000) + replay;
   }
   async function device(args) {
     const size = DEVICES[args.device === 'mobile' ? 'mobile' : 'desktop'];
