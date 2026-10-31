@@ -21,6 +21,26 @@ describe('release discovery', () => {
     const { AraraUpdates } = fixture();
     for (const value of [{ ...release(), draft: true }, { ...release(), prerelease: true }, { ...release(), tag_name: 'v1.0.0-rc.1' }, { ...release(), assets: [] }, { ...release(), assets: [{ ...release().assets[0], browser_download_url: 'https://example.com/file.zip' }] }]) expect(AraraUpdates.releaseUpdate(value, '0.1.0')).toBeNull();
   });
+  it('links the signed Firefox package when the release has one', () => {
+    const { AraraUpdates } = fixture();
+    const value = release('0.3.0');
+    value.assets.push({ name: 'arara-browser-0.3.0.xpi', state: 'uploaded', browser_download_url: 'https://github.com/arara-ide/arara-browser/releases/download/v0.3.0/arara-browser-0.3.0.xpi' });
+    expect(AraraUpdates.releaseUpdate(value, '0.2.0')).toMatchObject({ version: '0.3.0', xpi: expect.stringMatching(/arara-browser-0\.3\.0\.xpi$/) });
+    expect(AraraUpdates.releaseUpdate(release('0.3.0'), '0.2.0').xpi).toBeUndefined();
+  });
+  it('caches the check for 6 hours, keeps the last answer offline and never blocks without one', async () => {
+    const context = fixture();
+    const saved: Record<string, unknown> = {};
+    const storage = { get: async (key: string) => ({ [key]: saved[key] }), set: async (value: Record<string, unknown>) => Object.assign(saved, value) };
+    context.fetch.mockResolvedValue(new Response(JSON.stringify(release('0.3.0'))));
+    expect((await context.AraraUpdates.freshness('0.2.0', storage, 1000)).version).toBe('0.3.0');
+    expect((await context.AraraUpdates.freshness('0.2.0', storage, 2000)).version).toBe('0.3.0');
+    expect(context.fetch).toHaveBeenCalledTimes(1);
+    context.fetch.mockRejectedValue(new Error('offline'));
+    expect((await context.AraraUpdates.freshness('0.2.0', storage, 1000 + context.AraraUpdates.CHECK_EVERY_MS)).version).toBe('0.3.0');
+    expect(await context.AraraUpdates.freshness('0.3.0', storage, 5000)).toBeNull();
+    expect(await fixture().AraraUpdates.freshness('0.2.0', { get: async () => ({}), set: async () => {} }, 1)).toBeNull();
+  });
   it('reports network failures without claiming the installation is up to date', async () => {
     const context = fixture();
     context.fetch.mockResolvedValue(new Response('', { status: 403 }));

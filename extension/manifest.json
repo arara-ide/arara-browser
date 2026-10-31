@@ -1,20 +1,25 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "__MSG_extensionDescription__",
   "permissions": [
     "storage",
     "tabs",
-    "alarms"
+    "alarms",
+    "scripting"
   ],
   "host_permissions": [
-    "http://127.0.0.1/*",
-    "https://chatgpt.com/*",
-    "https://api.github.com/*"
+    "<all_urls>"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "scripts": [
+      "updates.js",
+      "agent-tabs.js",
+      "agent-worker.js",
+      "background.js"
+    ]
   },
   "content_scripts": [
     {
@@ -24,6 +29,28 @@
       "js": [
         "content.js"
       ]
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "page-hooks.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "cursor.js",
+        "agent-dom.js",
+        "agent-input.js",
+        "agent.js"
+      ],
+      "run_at": "document_idle"
     }
   ],
   "action": {
@@ -35,7 +62,19 @@
   "icons": {
     "128": "icon.png"
   },
-  "minimum_chrome_version": "120",
+  "minimum_chrome_version": "121",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "arara-browser@arara-ide.github.io",
+      "strict_min_version": "128.0",
+      "update_url": "https://github.com/arara-ide/arara-browser/releases/latest/download/updates.json",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    }
+  },
   "homepage_url": "https://github.com/arara-ide/arara-browser",
   "default_locale": "en"
 }

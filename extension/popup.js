@@ -59,3 +59,21 @@ async function checkUpdate() {
   }
 }
 void checkUpdate();
+const allSites = { origins: ['<all_urls>'] };
+async function renderSites() { q('sites').hidden = await chrome.permissions.contains(allSites); }
+q('sites').onclick = async () => {
+  const granted = await chrome.permissions.request(allSites).catch(() => false);
+  render({ notice: chrome.i18n.getMessage(granted ? 'sitesAllowed' : 'sitesDenied') });
+  await renderSites();
+};
+void renderSites();
+const firefox = /Firefox\//.test(navigator.userAgent);
+function renderOutdated(outdated) {
+  q('outdated').hidden = !outdated;
+  if (!outdated) return;
+  q('outdated-body').textContent = chrome.i18n.getMessage('outdatedBody', [outdated.current, outdated.latest]);
+  q('outdated-manual').textContent = chrome.i18n.getMessage(firefox ? 'outdatedManualFirefox' : 'outdatedManual');
+  q('outdated-download').onclick = () => chrome.tabs.create({ url: (firefox && outdated.xpi) || outdated.url });
+}
+chrome.storage.session.get('outdated').then(({ outdated }) => renderOutdated(outdated));
+chrome.storage.onChanged.addListener((changes, area) => { if (area === 'session' && changes.outdated) renderOutdated(changes.outdated.newValue); });

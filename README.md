@@ -1,6 +1,9 @@
 # Arara Browser
 
-Extensão Manifest V3, open source (MIT), que conecta a sessão do ChatGPT no Chrome/Edge ao Arara Code. O navegador mantém o login; a IDE executa ferramentas e controla permissões.
+Extensão Manifest V3, open source (MIT), que conecta o seu navegador (Chrome, Edge, Brave e outros baseados em Chromium, além do Firefox) ao Arara Code. Ela tem dois usos:
+
+- **ChatGPT no navegador:** a sessão do ChatGPT vira uma plataforma do chat da IDE. O navegador mantém o login; a IDE executa ferramentas e controla permissões.
+- **Seu navegador para a IA:** ao mencionar **Seu navegador** no chat do Arara Code ou do Arara Bot, a IA trabalha nas suas abas reais, com os seus logins, e o cursor dela aparece em todas as abas enquanto ela trabalha.
 
 ## Branches e contribuição
 
@@ -99,13 +102,28 @@ Consulte os [Termos de Uso](https://openai.com/policies/terms-of-use/), os [term
 
 ## Instalar
 
-Na IDE, abra **ChatGPT → Conexão com navegador → Salvar extensão…** e escolha uma pasta. A IDE baixa a release pública, verifica SHA-256 e abre `Arara-Browser`. No navegador, abra **Extensões → Modo do desenvolvedor → Carregar sem compactação** e selecione essa pasta.
+Na IDE, abra **Configurações › Arara Browser** (o comando **Arara: Conectar seu navegador** e o botão de conexão do ChatGPT levam para lá) e clique em **Instalar no Chrome, Edge ou Brave**. A IDE baixa a release pública, verifica SHA-256 e abre `Arara-Browser`. No navegador, abra **Extensões → Modo do desenvolvedor → Carregar sem compactação** e selecione essa pasta.
 
-Também é possível baixar o ZIP em [Releases](https://github.com/arara-ide/arara-browser/releases/latest) e extrair manualmente. Não selecione “Source code”. Chrome/Edge 120 ou superior; Firefox não é suportado.
+Também é possível baixar o ZIP em [Releases](https://github.com/arara-ide/arara-browser/releases/latest) e extrair manualmente. Não selecione “Source code”. Chrome, Edge, Brave e outros Chromium 121 ou superior.
 
-Abra o ícone da extensão, cole o código da IDE e clique em **Conectar**. Mantenha o navegador aberto e o ChatGPT conectado. Reiniciar a IDE ou o navegador exige parear novamente.
+No Firefox 128 ou superior, use **Baixar para Firefox** na mesma aba: a IDE baixa o arquivo `arara-browser-<versão>.xpi` assinado pela Mozilla e confere o SHA-256. Arraste o arquivo para uma janela do Firefox e clique em **Adicionar**. O Firefox atualiza sozinho pelo `updates.json` da última release. Se o Firefox não conceder o acesso às páginas, abra o popup e clique em **Permitir todos os sites**. Para desenvolver, `about:debugging#/runtime/this-firefox` → **Carregar extensão temporária…** continua funcionando.
+
+Na IDE, rode **Arara: Conectar seu navegador** (ou **ChatGPT → Conexão com navegador**) para ver o código. Abra o ícone da extensão, cole o código e clique em **Conectar**. Mantenha o navegador aberto. Reiniciar a IDE ou o navegador exige parear novamente. Um pareamento serve às duas funções e a todas as janelas do Arara Code no mesmo computador.
+
+## Seu navegador para a IA
+
+No chat lateral, abra **@ → Seu navegador** (ou digite `@seu`) e peça o que precisa. No Arara Bot, o bot precisa ter o navegador ativado. A IA pode listar, abrir, escolher e fechar abas; navegar, voltar e recarregar; ler a página como texto com identificadores de elementos; clicar, passar o mouse, preencher campos e formulários, digitar e pressionar teclas; rolar; esperar um texto; executar um script na página; ver o console e as requisições de rede desde o carregamento; tirar print da área visível; e mudar o tamanho da janela para desktop ou celular.
+
+O cursor da IA (28 px) aparece em todas as abas enquanto ela trabalha. Ele anda até um ponto aleatório do elemento por um caminho curvo e, em 70% das vezes, depois de 2 a 5 s, vai para outro ponto do mesmo elemento se nada mais precisou dele nesse tempo. Ele passa pelos trechos que a IA está lendo e digita a 700 caracteres por minuto (textos longos aceleram para caber em 60 s); a ação só termina quando a digitação acaba. A aba em que ela age mostra um aviso, e o cursor some depois de alguns segundos sem ações. Páginas internas do navegador (configurações, lojas de extensões, `about:`/`chrome://`) não aceitam extensões. A IA não digita senhas: ela pede para você entrar.
+
+As ações seguem as permissões do chat: leitura passa direto; ações que mudam a página pedem aprovação quando o chat não está em permissão total, e o modo somente leitura bloqueia.
 
 ## Atualizar
+
+Versão velha não trabalha: a extensão consulta a última release a cada 6 horas e, se houver uma versão maior, recusa os pedidos do ChatGPT e da IA e mostra no popup o aviso **Atualize o Arara Browser**, com os passos em palavras simples. Sem internet, vale a última resposta guardada; sem nenhuma resposta, a extensão continua funcionando.
+
+No Chrome, Edge e Brave, **Atualizar** em Configurações › Arara Browser troca os arquivos na mesma pasta e pede para a extensão reiniciar sozinha; o pareamento é guardado por até 2 minutos para sobreviver ao reinício. As abas abertas recebem os scripts de novo quando a IA as usa.
+
 
 Cada abertura do popup consulta a última release estável no GitHub. Se houver uma versão maior, **Atualizar** abre o download direto do ZIP daquela release. Extraia na mesma pasta, clique em **Recarregar** na tela de extensões e atualize a aba do ChatGPT mantendo a URL da conversa.
 
@@ -122,7 +140,10 @@ npm run build
 npx playwright install --with-deps chromium
 npm run test:content
 npm run test:compatibility
+npm run test:agent
 ```
+
+`test:agent` carrega a extensão real no Chromium, conecta a uma IDE simulada e usa o agente em páginas locais: lista abas, lê, preenche, clica, roda script, vê o console e tira print, conferindo o cursor em duas abas. O Firefox não tem teste automatizado; confira manualmente com uma extensão temporária.
 
 Node 22/24. CI executa a matriz em Linux, Windows e macOS. Testes cobrem entrega/retomada de mensagens, seleção de modelos, cancelamento e respostas em página simulada, além de carregar a extensão real no Chromium com Manifest V3, service worker, popup e atualização. Testes não usam contas reais nem dependem da interface ao vivo do ChatGPT. Alterações do site exigem validação manual adicional. Chrome e Edge compartilham o alvo Chromium, mas não são executados separadamente na CI.
 
@@ -138,7 +159,7 @@ O ZIP é determinístico, contém arquivos na raiz e usa o método padrão STORE
 
 HTTP autenticado somente em `127.0.0.1`; token de pareamento em memória de sessão. Identificadores de abas e URLs de conversas ficam no armazenamento local para retomada. Cookies e tokens do ChatGPT permanecem no site. Nenhum código remoto é executado. Uma entrega incerta não é reenviada automaticamente.
 
-Permissões: `storage` (sessão e vínculo de abas), `tabs` (conversas), `alarms` (ponte), acesso ao ChatGPT, loopback e API pública do GitHub (versões).
+Permissões: `storage` (sessão e vínculo de abas), `tabs` (conversas e abas da IA), `alarms` (ponte), `scripting` (executar o script pedido pela IA na aba selecionada) e acesso a todos os sites (`<all_urls>`: ler e agir nas páginas quando a IA é chamada, mostrar o cursor, guardar o console e as requisições da página e falar com a IDE em loopback). Os scripts das páginas só registram console e requisições na própria aba; nada sai do navegador sem um pedido da IDE pareada.
 
 ## Revisão e segurança dos PRs
 

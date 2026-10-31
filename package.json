@@ -1,6 +1,6 @@
 {
   "name": "arara-browser",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Extensão de navegador do Arara Code",
   "license": "MIT",
@@ -13,7 +13,8 @@
     "test": "vitest run",
     "build": "node scripts/build.mjs",
     "test:compatibility": "node scripts/compatibility.mjs",
-    "test:content": "node scripts/test-content.cjs"
+    "test:content": "node scripts/test-content.cjs",
+    "test:agent": "node scripts/test-agent.mjs"
   },
   "devDependencies": {
     "fflate": "0.8.3",
