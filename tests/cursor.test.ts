@@ -27,7 +27,7 @@ describe('AI cursor realism', () => {
     vi.useFakeTimers();
     let listener!: (message: unknown, sender: unknown, reply: (value: unknown) => void) => unknown;
     const box = { left: 0, top: 0, width: 100, height: 30 };
-    const element = { isConnected: true, getBoundingClientRect: () => box };
+    const element = { isConnected: true, getBoundingClientRect: () => box, querySelectorAll: () => [] };
     const others: Record<string, { isConnected: boolean; getBoundingClientRect: () => typeof box }> = {};
     const moves: [number, number][] = [], events: string[] = [];
     const cursor = { driftDelay: () => 3000, visible: true, position: { x: 0, y: 0 }, moveTo: vi.fn(async (x: number, y: number) => { moves.push([x, y]); events.push(`move ${x},${y}`); cursor.position = { x, y }; }), chase: vi.fn(async (_aim: unknown, until: Promise<void>) => until), press: vi.fn(async () => { events.push('press'); }), owns: () => false };
