@@ -3,7 +3,7 @@
     "message": "Arara | Navegador"
   },
   "extensionDescription": {
-    "message": "Conecta a sessão do ChatGPT no navegador ao chat da IDE Arara."
+    "message": "Conecta o ChatGPT do navegador ao chat do Arara Code e permite que a IA da IDE use as abas do seu navegador."
   },
   "connected": {
     "message": "Conectado"
@@ -127,5 +127,41 @@
   },
   "documentBusy": {
     "message": "Document busy"
+  },
+  "agentIntro": {
+    "message": "Mencione “Seu navegador” no chat do Arara Code e a IA trabalha nas suas abas abertas, com o cursor dela visível."
+  },
+  "allowSites": {
+    "message": "Permitir todos os sites"
+  },
+  "sitesAllowed": {
+    "message": "A IA já pode usar suas abas."
+  },
+  "sitesDenied": {
+    "message": "O acesso aos sites não foi concedido. A IA não pode usar suas abas."
+  },
+  "agentWorking": {
+    "message": "A IA do Arara está usando este navegador"
+  },
+  "outdatedTitle": {
+    "message": "Atualize o Arara Browser"
+  },
+  "outdatedBody": {
+    "message": "Você está na versão $1 e já saiu a $2. Até atualizar, a IA e o ChatGPT não usam este navegador."
+  },
+  "outdatedEasy": {
+    "message": "Jeito mais fácil: no Arara Code, abra Configurações › Arara Browser e clique em Atualizar. A extensão reinicia sozinha."
+  },
+  "outdatedManual": {
+    "message": "Ou faça na mão: baixe o pacote, descompacte por cima da pasta da extensão (substituindo os arquivos) e clique em Recarregar na página de extensões."
+  },
+  "outdatedManualFirefox": {
+    "message": "Firefox: baixe o arquivo novo, abra about:debugging, vá em Este Firefox, clique em Carregar extensão temporária e escolha o arquivo."
+  },
+  "outdatedDownload": {
+    "message": "Baixar atualização"
+  },
+  "outdatedRefusal": {
+    "message": "O Arara Browser está desatualizado (versão $1, a mais nova é $2). Peça para o usuário atualizar no Arara Code: Configurações › Arara Browser › Atualizar."
   }
 }

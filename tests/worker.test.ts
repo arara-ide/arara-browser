@@ -4,7 +4,7 @@ import { runInNewContext } from 'node:vm';
 import { describe, expect, it, vi } from 'vitest';
 const source = readFileSync('extension/background.js', 'utf8');
 
-async function fixture(failReceipt = false, workTabBinding?: { id: number; url: string; contextId?: string }) {
+async function fixture(failReceipt = false, workTabBinding?: { id: number; url: string; contextId?: string }, extra: { update?: { version: string; url: string }; reload?: boolean } = {}) {
   const session = new Map<string, unknown>([['connection', { port: 12345, token: 'test-token' }]]);
   const local = new Map<string, unknown>([['worker', 'worker-1']]);
   if (workTabBinding) local.set('workTabBinding', workTabBinding);
@@ -20,7 +20,7 @@ async function fixture(failReceipt = false, workTabBinding?: { id: number; url: 
   const request = vi.fn<typeof fetch>().mockImplementation(async (url, init) => {
     if (String(url).endsWith('/poll')) {
       const next = first ? job : null; first = false;
-      return Response.json({ job: next, cancel: null });
+      return Response.json({ job: next, cancel: null, ...(extra.reload ? { reload: true } : {}) });
     }
     if (failReceipt) { failReceipt = false; throw new Error('temporary receipt failure'); }
     return Response.json({ acknowledged: JSON.parse(init?.body as string).id });
@@ -28,17 +28,36 @@ async function fixture(failReceipt = false, workTabBinding?: { id: number; url: 
   const updateTab = vi.fn(async () => ({ id: 7 }));
   const createTab = vi.fn(async () => ({ id: 7 }));
   const chrome = {
-    i18n: { getMessage: (key: string) => JSON.parse(readFileSync("extension/_locales/pt_BR/messages.json", "utf8"))[key]?.message ?? key },
+    i18n: { getMessage: (key: string, values: string[] | string = []) => String(JSON.parse(readFileSync("extension/_locales/pt_BR/messages.json", "utf8"))[key]?.message ?? key).replace(/\$(\d)/g, (_, n) => [values].flat()[Number(n) - 1] ?? '') },
     storage: { session: store(session), local: store(local) },
     tabs: { create: createTab, get: vi.fn(async (id: number) => ({ id, url: 'https://chatgpt.com/c/test' })), update: updateTab, sendMessage: vi.fn(async () => {}), remove: vi.fn(async () => {}), onRemoved: { addListener: vi.fn() } },
-    runtime: { onMessage: { addListener: (fn: typeof listener) => { listener = fn; } } },
+    runtime: { onMessage: { addListener: (fn: typeof listener) => { listener = fn; } }, getManifest: () => ({ version: '0.2.0' }), reload: vi.fn() },
     alarms: { create: vi.fn(async () => {}), onAlarm: { addListener: vi.fn() } },
   };
-  runInNewContext(source, { chrome, fetch: request, crypto: webcrypto, AbortSignal, setInterval: (fn: () => void) => { tick = fn; } });
-  await vi.waitFor(() => expect(session.get('active')).toEqual(job));
+  const AraraUpdates = { freshness: async () => extra.update ?? null };
+  runInNewContext(source, { chrome, fetch: request, crypto: webcrypto, AbortSignal, AraraUpdates, setInterval: (fn: () => void) => { tick = fn; } });
+  if (!extra.update && !extra.reload) await vi.waitFor(() => expect(session.get('active')).toEqual(job));
   const send = (message: unknown, tabId = 7) => new Promise<unknown>(resolve => listener(message, { tab: { id: tabId }, url: 'https://chatgpt.com/' }, resolve));
-  return { job, send, tick, request, session, local, createTab, updateTab, removeTab: chrome.tabs.remove, sendMessage: chrome.tabs.sendMessage, getTab: chrome.tabs.get, popup: (message: unknown) => new Promise<any>(resolve => listener(message, {}, resolve)) };
+  return { chrome, job, send, tick, request, session, local, createTab, updateTab, removeTab: chrome.tabs.remove, sendMessage: chrome.tabs.sendMessage, getTab: chrome.tabs.get, popup: (message: unknown) => new Promise<any>(resolve => listener(message, {}, resolve)) };
 }
+describe('outdated extension and self-update', () => {
+  it('refuses work while a newer release exists, tells the IDE the version and shows it in the popup', async () => {
+    const f = await fixture(false, undefined, { update: { version: '0.3.0', url: 'https://github.com/arara-ide/arara-browser/releases/download/v0.3.0/arara-browser-0.3.0.zip' } });
+    await vi.waitFor(() => expect(f.request.mock.calls.some(([url]) => String(url).endsWith('/result'))).toBe(true));
+    const poll = JSON.parse(f.request.mock.calls.find(([url]) => String(url).endsWith('/poll'))![1]!.body as string);
+    expect(poll).toMatchObject({ version: '0.2.0', outdated: { latest: '0.3.0' } });
+    const result = JSON.parse(f.request.mock.calls.find(([url]) => String(url).endsWith('/result'))![1]!.body as string);
+    expect(result.result.error).toContain('0.3.0');
+    expect(f.session.get('active')).toBeUndefined();
+    expect(f.session.get('outdated')).toMatchObject({ current: '0.2.0', latest: '0.3.0' });
+    expect(f.createTab).not.toHaveBeenCalled();
+  });
+  it('reloads itself when the IDE replaced the files and keeps the pairing across the reload', async () => {
+    const f = await fixture(false, undefined, { reload: true });
+    await vi.waitFor(() => expect(f.chrome.runtime.reload).toHaveBeenCalled());
+    expect(f.local.get('reloadConnection')).toMatchObject({ connection: { port: 12345, token: 'test-token' } });
+  });
+});
 describe('browser worker delivery', () => {
   it('initializes each context once and keeps subsequent prompts incremental', async () => {
     const f = await fixture();

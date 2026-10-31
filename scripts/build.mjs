@@ -15,6 +15,9 @@ for (const file of [...files, 'LICENSE']) {
 const zip = zipSync(entries, { level: 0, mtime: new Date(1980, 0, 1), os: 0 });
 const name = `arara-browser-${pkg.version}.zip`;
 await rm('dist', { recursive: true, force: true }); await mkdir('dist');
+const firefox = `arara-browser-${pkg.version}.xpi`;
+const hash = createHash('sha256').update(zip).digest('hex');
 await writeFile(`dist/${name}`, zip);
-await writeFile('dist/SHA256SUMS', `${createHash('sha256').update(zip).digest('hex')}  ${name}\n`);
-console.log(name);
+await writeFile(`dist/${firefox}`, zip);
+await writeFile('dist/SHA256SUMS', `${hash}  ${name}\n${hash}  ${firefox}\n`);
+console.log(`${name}\n${firefox}`);

@@ -44,6 +44,17 @@ try {
   await page.reload();
   await page.waitForFunction(() => document.querySelector('#update-status').textContent === chrome.i18n.getMessage('updateFailed', chrome.runtime.getManifest().version));
   assert.equal(await page.locator('#connect').isEnabled(), true);
+  await worker.evaluate(() => chrome.storage.local.set({ releaseCheck: { current: chrome.runtime.getManifest().version, checked: Date.now(), update: null } }));
+  await page.locator('#outdated').waitFor({ state: 'hidden' });
+  const zipUrl = 'https://github.com/arara-ide/arara-browser/releases/download/v99.0.0/arara-browser-99.0.0.zip';
+  await worker.evaluate(url => chrome.storage.local.set({ releaseCheck: { current: chrome.runtime.getManifest().version, checked: Date.now(), update: { version: '99.0.0', url } } }), zipUrl);
+  await page.locator('#outdated').waitFor({ timeout: 8000 });
+  assert.match(await page.locator('#outdated-body').innerText(), /99\.0\.0/);
+  await page.evaluate(() => { chrome.tabs.create = async ({ url }) => { window.downloadUrl = url; }; });
+  await page.locator('#outdated-download').click();
+  assert.equal(await page.evaluate(() => window.downloadUrl), zipUrl);
+  await worker.evaluate(() => chrome.storage.local.set({ releaseCheck: { current: chrome.runtime.getManifest().version, checked: Date.now(), update: null } }));
+  await page.locator('#outdated').waitFor({ state: 'hidden', timeout: 8000 });
   assert.deepEqual(errors, []);
   console.log(`Manifest V3, service worker, popup and update flow: PASS (Chromium ${context.browser().version()})`);
 } finally { await context.close(); await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); }

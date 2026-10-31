@@ -1,3 +1,4 @@
+if (typeof importScripts === 'function') importScripts('updates.js', 'agent-tabs.js', 'agent-worker.js');
 let polling, worker, active, browserTab, handed, completed, workTab;
 async function api(path, data) {
   const { connection } = await chrome.storage.session.get('connection');
@@ -37,7 +38,18 @@ async function runPoll() {
     await initialized;
     worker ??= (await chrome.storage.local.get('worker')).worker;
     if (!worker) { worker = crypto.randomUUID(); await chrome.storage.local.set({ worker }); }
-    const { job, cancel, disconnected } = await api('/poll', { contexts: Object.keys(await bindings()) });
+    const version = chrome.runtime.getManifest().version;
+    const update = await globalThis.AraraUpdates?.freshness(version, chrome.storage.local).catch(() => null);
+    await chrome.storage.session.set({ outdated: update ? { current: version, latest: update.version, url: update.url, xpi: update.xpi } : null });
+    const refusal = update ? chrome.i18n.getMessage('outdatedRefusal', [version, update.version]) : undefined;
+    const { job, cancel, disconnected, agent, reload } = await api('/poll', { contexts: Object.keys(await bindings()), version, outdated: update ? { latest: update.version } : null });
+    if (reload === true && !active && !disconnected) {
+      const { connection } = await chrome.storage.session.get('connection');
+      await chrome.storage.local.set({ reloadConnection: { connection, at: Date.now() } });
+      chrome.runtime.reload();
+      return { ok: true };
+    }
+    if (agent && !disconnected) void globalThis.AraraAgent?.loop(api, refusal);
     if (completed && !disconnected) {
       await api('/result', completed);
       await clearWork();
@@ -51,8 +63,9 @@ async function runPoll() {
       }
     }
     if (disconnected) { await clearWork(); await chrome.storage.session.remove(['connection']); throw new Error(chrome.i18n.getMessage('disconnectedByIde')); }
-    if (job && active) await api('/result', { id: job.id, result: { error: chrome.i18n.getMessage('busy') } });
-    if (job && !active) {
+    if (job && refusal) await api('/result', { id: job.id, result: { error: refusal } });
+    else if (job && active) await api('/result', { id: job.id, result: { error: chrome.i18n.getMessage('busy') } });
+    if (job && !active && !refusal) {
       active = job; handed = null;
       try {
         const binding = job.kind === 'send' && job.contextId ? (await bindings())[job.contextId] : undefined;
@@ -114,6 +127,11 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     })().catch(() => reply({ ok: false }));
     return;
   }
+  if (sender.tab && message.type === 'agentHello') { void Promise.resolve(globalThis.AraraTabs?.hello(sender.tab.id) ?? { active: false }).then(reply, () => reply({ active: false })); return; }
+  if (sender.tab && message.type === 'agentCursor') {
+    void globalThis.AraraTabs?.setCursor({ active: true, tabId: sender.tab.id, x: Number(message.x) || 0, y: Number(message.y) || 0, action: String(message.action ?? 'move'), label: chrome.i18n.getMessage('agentWorking') }).then(() => reply({ ok: true }));
+    return;
+  }
   if (sender.url?.startsWith('https://chatgpt.com/') && sender.tab?.id === browserTab && active) {
     if (message.type === 'ready') {
       if (handed === active.id) {
@@ -152,6 +170,11 @@ chrome.tabs.onRemoved.addListener(tabId => {
   void initialized.then(() => { if (tabId === browserTab && active && !completed) void saveResult(active.id, { error: chrome.i18n.getMessage('tabClosed') }).then(() => poll()); });
 });
 const initialized = (async () => {
+  const { reloadConnection } = await chrome.storage.local.get('reloadConnection');
+  if (reloadConnection) {
+    await chrome.storage.local.remove('reloadConnection');
+    if (reloadConnection.connection && Date.now() - reloadConnection.at < 120000) await chrome.storage.session.set({ connection: reloadConnection.connection });
+  }
   const saved = await chrome.storage.session.get(['active', 'browserTab', 'handed', 'completed', 'workTab']);
   active = saved.active; browserTab = saved.browserTab; handed = saved.handed; completed = saved.completed; workTab = saved.workTab;
   if (!workTab) {
@@ -166,4 +189,6 @@ const initialized = (async () => {
 })();
 void initialized.then(() => poll());
 chrome.alarms.onAlarm.addListener(() => void poll());
+chrome.runtime.onInstalled?.addListener(() => void initialized.then(() => poll()));
+chrome.runtime.onStartup?.addListener(() => void initialized.then(() => poll()));
 setInterval(() => void poll(), 1000);

@@ -3,7 +3,7 @@
     "message": "Arara | Browser"
   },
   "extensionDescription": {
-    "message": "Connects the browser ChatGPT session to the Arara IDE chat."
+    "message": "Connects ChatGPT in the browser to the Arara Code chat and lets the IDE AI use your own browser tabs."
   },
   "connected": {
     "message": "Connected"
@@ -127,5 +127,41 @@
   },
   "documentBusy": {
     "message": "Document busy"
+  },
+  "agentIntro": {
+    "message": "Mention “Your browser” in the Arara Code chat and the AI works in your open tabs, with its cursor visible."
+  },
+  "allowSites": {
+    "message": "Allow all sites"
+  },
+  "sitesAllowed": {
+    "message": "The AI can now use your tabs."
+  },
+  "sitesDenied": {
+    "message": "Site access was not granted. The AI cannot use your tabs."
+  },
+  "agentWorking": {
+    "message": "Arara AI is using this browser"
+  },
+  "outdatedTitle": {
+    "message": "Update Arara Browser"
+  },
+  "outdatedBody": {
+    "message": "You have version $1 and version $2 is out. Until you update, the AI and ChatGPT can't use this browser."
+  },
+  "outdatedEasy": {
+    "message": "Easiest way: in Arara Code, open Settings › Arara Browser and click Update. The extension restarts by itself."
+  },
+  "outdatedManual": {
+    "message": "Or do it by hand: download the package, unzip it on top of the extension folder (replace the files) and click Reload on the extensions page."
+  },
+  "outdatedManualFirefox": {
+    "message": "Firefox: download the new file, open about:debugging, go to This Firefox, click Load Temporary Add-on and choose it."
+  },
+  "outdatedDownload": {
+    "message": "Download update"
+  },
+  "outdatedRefusal": {
+    "message": "Arara Browser is outdated (version $1, latest $2). Ask the user to update it in Arara Code: Settings › Arara Browser › Update."
   }
 }
