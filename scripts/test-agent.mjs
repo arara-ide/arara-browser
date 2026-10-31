@@ -52,7 +52,7 @@ try {
   const typingStarted = Date.now();
   assert.ok(!(await run('fill', { uid: field, value: 'Arara' })).error);
   const typingMs = Date.now() - typingStarted;
-  assert.ok(typingMs >= 5 * 80, `typing finished after the 700 cpm animation (${typingMs} ms)`);
+  assert.ok(typingMs >= 5 * 25, `typing finished after the 2000 cpm animation (${typingMs} ms)`);
   assert.equal(await first.locator('#name').inputValue(), 'Arara');
   assert.ok(!(await run('click', { uid: button })).error);
   assert.equal(await first.locator('#out').innerText(), 'Hello Arara');

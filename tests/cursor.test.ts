@@ -16,6 +16,14 @@ describe('AI cursor realism', () => {
     expect(AraraDom.pointIn({ left: 900, top: 10, width: 300, height: 20 }, () => 1, view).x).toBeLessThanOrEqual(1000);
     expect(AraraDom.pointIn({ left: 100, top: 900, width: 50, height: 20 }, () => 0.5, view)).toBeNull();
   });
+  it('types at 2000 characters per minute and draws a 22 px cursor', () => {
+    const { AraraInput } = load('agent-input.js', { chrome: {} }) as any;
+    expect(AraraInput.CHARS_PER_MINUTE).toBe(2000);
+    expect(AraraInput.typingStep(10)).toBe(30);
+    expect(AraraInput.typingStep(4000)).toBe(15);
+    const { AraraCursor } = load('cursor.js', { document: { querySelectorAll: () => [] } }) as any;
+    expect(AraraCursor.SIZE).toBe(22);
+  });
   it('drifts in 70% of the cases, after 2 to 5 seconds', () => {
     const { AraraCursor } = load('cursor.js', { document: { querySelectorAll: () => [] } }) as any;
     expect(AraraCursor.driftDelay(() => 0.69)).toBe(2000 + 0.69 * 3000);

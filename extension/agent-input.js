@@ -1,7 +1,7 @@
 (() => {
   if (globalThis.AraraInput && globalThis.__araraRuntime === chrome.runtime?.id) return;
   const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-  const CHARS_PER_MINUTE = 700, MAX_TYPING_MS = 60000;
+  const CHARS_PER_MINUTE = 2000, MAX_TYPING_MS = 60000;
   const typingStep = total => Math.min(60000 / CHARS_PER_MINUTE, MAX_TYPING_MS / Math.max(1, total));
   const nativeSetter = element => Object.getOwnPropertyDescriptor(element.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : element.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype, 'value').set;
   const fire = (element, type, init = {}) => {

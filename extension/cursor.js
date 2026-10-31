@@ -1,7 +1,7 @@
 (() => {
   if (globalThis.AraraCursor && globalThis.__araraRuntime === chrome.runtime?.id) return;
   for (const stale of document.querySelectorAll('arara-cursor')) stale.remove();
-  const SIZE = 32, TIP = { x: SIZE * 4 / 24, y: SIZE * 2 / 24 };
+  const SIZE = 22, TIP = { x: SIZE * 4 / 24, y: SIZE * 2 / 24 };
   let host, pointer, badge, frame = 0, motion, finish, scale = 1, pos = { x: 48, y: 48 }, target = { ...pos };
   const ARROW = `<svg width="${SIZE}" height="${SIZE}" viewBox="0 0 24 24"><path d="M4 2l15 9-7 1.6L8.6 20z" fill="#fff" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
   const still = () => document.hidden || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
