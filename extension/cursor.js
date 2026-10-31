@@ -2,7 +2,7 @@
   if (globalThis.AraraCursor && globalThis.__araraRuntime === chrome.runtime?.id) return;
   for (const stale of document.querySelectorAll('arara-cursor')) stale.remove();
   const SIZE = 32, TIP = { x: SIZE * 4 / 24, y: SIZE * 2 / 24 };
-  let host, pointer, badge, frame = 0, motion, scale = 1, pos = { x: 48, y: 48 }, target = { ...pos };
+  let host, pointer, badge, frame = 0, motion, finish, scale = 1, pos = { x: 48, y: 48 }, target = { ...pos };
   const ARROW = `<svg width="${SIZE}" height="${SIZE}" viewBox="0 0 24 24"><path d="M4 2l15 9-7 1.6L8.6 20z" fill="#fff" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
   const still = () => document.hidden || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
   const ease = t => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
@@ -34,47 +34,48 @@
     return t => { const u = 1 - t; return { x: u ** 3 * from.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t ** 3 * to.x, y: u ** 3 * from.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t ** 3 * to.y }; };
   }
   const durationFor = (from, to) => Math.min(750, Math.max(220, Math.hypot(to.x - from.x, to.y - from.y) * 0.9));
+  function stop() {
+    cancelAnimationFrame(frame); motion = undefined;
+    const pending = finish; finish = undefined; pending?.();
+  }
+  function animate(step) {
+    stop();
+    return new Promise(resolve => {
+      const end = () => { if (finish === end) { finish = undefined; motion = undefined; } resolve(); };
+      finish = end;
+      const tick = now => { if (finish !== end) return; if (step(now)) end(); else frame = requestAnimationFrame(tick); };
+      frame = requestAnimationFrame(tick);
+    });
+  }
   function moveTo(x, y, speed = 1) {
     mount();
     const to = { x: Math.round(x), y: Math.round(y) };
     if (to.x === target.x && to.y === target.y && motion) return motion;
     target = to;
-    cancelAnimationFrame(frame);
-    if (still() || Math.hypot(to.x - pos.x, to.y - pos.y) < 2) { place(to); return (motion = Promise.resolve()); }
+    if (still() || Math.hypot(to.x - pos.x, to.y - pos.y) < 2) { stop(); place(to); return Promise.resolve(); }
     const from = { ...pos }, path = curve(from, to), total = durationFor(from, to) / speed, start = performance.now();
-    return (motion = new Promise(resolve => {
-      const tick = now => {
-        const t = Math.min(1, (now - start) / total);
-        place(path(ease(t)));
-        if (t < 1) frame = requestAnimationFrame(tick); else { motion = undefined; resolve(); }
-      };
-      frame = requestAnimationFrame(tick);
-    }));
+    return (motion = animate(now => { const t = Math.min(1, (now - start) / total); place(path(ease(t))); return t >= 1; }));
   }
   function chase(aim, until, delay = 0) {
     mount();
-    cancelAnimationFrame(frame); motion = undefined;
     let done = false;
     void until.then(() => { done = true; });
-    if (still()) return until;
-    return new Promise(resolve => {
-      const start = performance.now();
-      let last = start;
-      const tick = now => {
-        const dt = Math.min(64, now - last) / 1000; last = now;
-        const at = now - start >= delay ? aim() : null;
-        if (at) { const k = 1 - Math.exp(-dt * 6); place({ x: pos.x + (at.x - pos.x) * k, y: pos.y + (at.y - pos.y) * k }); target = { ...pos }; }
-        if (done) resolve(); else frame = requestAnimationFrame(tick);
-      };
-      frame = requestAnimationFrame(tick);
+    if (still()) { stop(); return until; }
+    const start = performance.now();
+    let last = start;
+    return animate(now => {
+      const dt = Math.min(64, now - last) / 1000; last = now;
+      const at = now - start >= delay ? aim() : null;
+      if (at) { const k = 1 - Math.exp(-dt * 6); place({ x: pos.x + (at.x - pos.x) * k, y: pos.y + (at.y - pos.y) * k }); target = { ...pos }; }
+      return done;
     });
   }
   function render(next) {
-    if (!next?.active) { cancelAnimationFrame(frame); motion = undefined; host?.remove(); host = undefined; return; }
+    if (!next?.active) { stop(); host?.remove(); host = undefined; return; }
+    const fresh = !host?.isConnected;
     mount();
     resize(next.zoom ?? 1);
-    if (next.here && Number.isFinite(next.x) && Number.isFinite(next.y)) void moveTo(next.x, next.y);
-    pointer.classList.toggle('click', next.action === 'click' && next.here === true);
+    if (fresh && next.here && Number.isFinite(next.x) && Number.isFinite(next.y)) void moveTo(next.x, next.y);
     badge.textContent = next.label ?? '';
   }
   async function press() {

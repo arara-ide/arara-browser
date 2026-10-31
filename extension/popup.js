@@ -7,10 +7,11 @@ function render({ code, connected, notice }) {
   if (connected !== undefined) {
     q('connection').textContent = connected ? chrome.i18n.getMessage('connected') : chrome.i18n.getMessage('disconnected');
     q('connection').dataset.connected = String(connected);
-    q('disconnect').hidden = !connected && !q('code').value;
+    q('connect').textContent = chrome.i18n.getMessage(connected ? 'disconnect' : 'connect');
+    q('connect').classList.toggle('secondary', connected);
+    q('connect').dataset.connected = String(connected);
   }
   if (notice !== undefined) q('status').textContent = notice;
-  q('copy').disabled = !q('code').value;
 }
 const action = type => chrome.runtime.sendMessage({ type });
 q('show').onclick = () => {
@@ -19,23 +20,20 @@ q('show').onclick = () => {
   q('show').textContent = show ? chrome.i18n.getMessage('hide') : chrome.i18n.getMessage('show');
   q('show').setAttribute('aria-pressed', String(show));
 };
-q('copy').onclick = async () => {
-  try { await navigator.clipboard.writeText(q('code').value); render({ notice: chrome.i18n.getMessage('copied') }); }
-  catch { render({ notice: chrome.i18n.getMessage('copyManually') }); }
-};
-q('code').oninput = () => { q('copy').disabled = !q('code').value; };
-q('chatgpt').onclick = () => chrome.tabs.create({ url: 'https://chatgpt.com/' });
-q('disconnect').onclick = async () => {
+async function disconnect() {
   await action('disconnect'); render({ code: '', connected: false, notice: chrome.i18n.getMessage('disconnectedNotice') });
-};
-q('connect').onclick = async () => {
-  q('connect').disabled = true;
+}
+async function connect() {
   try {
     const connection = JSON.parse(atob(q('code').value.trim().replace(/-/g, '+').replace(/_/g, '/')));
     if (!Number.isInteger(connection.port) || connection.port < 1 || connection.port > 65535 || !/^[\w-]{40,100}$/.test(connection.token)) throw new Error(chrome.i18n.getMessage('invalidCodeIde'));
     const result = await chrome.runtime.sendMessage({ type: 'connect', connection });
     render({ connected: result.ok, notice: result.ok ? chrome.i18n.getMessage('ready') : result.error || chrome.i18n.getMessage('openIde') });
   } catch (error) { render({ connected: false, notice: error.message }); }
+}
+q('connect').onclick = async () => {
+  q('connect').disabled = true;
+  try { await (q('connect').dataset.connected === 'true' ? disconnect() : connect()); }
   finally { q('connect').disabled = false; }
 };
   chrome.storage.session.get(['connection', 'connectionStatus']).then(({ connection, connectionStatus }) => {

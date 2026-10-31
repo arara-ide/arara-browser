@@ -1,18 +1,18 @@
 <!doctype html>
 <html lang="en" data-mode="browser">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Arara | ChatGPT</title><link rel="stylesheet" href="popup.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Arara Browser</title><link rel="stylesheet" href="popup.css"></head>
 <body><main>
-<header><img src="arara.svg" alt="" width="32" height="32"><div><strong>Arara Code</strong><span>ChatGPT</span></div><span id="connection" role="status" data-i18n="disconnected">Disconnected</span></header>
+<header><img src="arara.svg" alt="" width="32" height="32"><div><strong>Arara Browser</strong><span>Arara Code</span></div><span id="connection" role="status" data-i18n="disconnected">Disconnected</span></header>
 <section id="outdated" class="outdated" role="alert" hidden><strong data-i18n="outdatedTitle">Update Arara Browser</strong><p id="outdated-body"></p><p data-i18n="outdatedEasy"></p><button id="outdated-download" data-i18n="outdatedDownload">Download update</button><small id="outdated-manual"></small></section>
-<h1 data-i18n="headline">Your ChatGPT in the IDE</h1>
+<h1 data-i18n="headline">Link your browser to Arara Code</h1>
 <p data-i18n="intro"></p>
 
 <p data-i18n="agentIntro"></p>
 <div class="actions"><button id="sites" class="secondary" hidden data-i18n="allowSites">Allow all sites</button></div>
 <p class="browser-only" data-i18n="instructions"></p>
 <label for="code" data-i18n="codeLabel">Connection code</label>
-<div class="code-field"><input id="code" type="password" autocomplete="off" spellcheck="false"><button id="show" class="secondary" aria-controls="code" aria-pressed="false" data-i18n="show">Show</button></div>
-<div class="actions"><button id="connect" class="browser-only" data-i18n="connect">Connect</button><button id="copy" class="secondary" data-i18n="copy">Copy code</button><button id="disconnect" class="secondary" hidden data-i18n="disconnect">Disconnect</button></div>
+<div class="code-field"><input id="code" type="password" autocomplete="off" spellcheck="false"></div>
+<div class="actions"><button id="connect" class="browser-only" data-connected="false" data-i18n="connect">Connect</button><button id="show" class="secondary" aria-controls="code" aria-pressed="false" data-i18n="show">Show</button></div>
 <p id="status" role="status" aria-live="polite"></p>
-<footer><button id="chatgpt" class="link" data-i18n="openChatGPT">Open ChatGPT ↗</button><small data-i18n="permissions">The IDE handles permissions and snapshots. Keep the tab open while it is working.</small><small id="update-status" role="status" aria-live="polite"></small><button id="update" class="secondary" hidden data-i18n="update">Update</button><small data-i18n="updateInstructions">After downloading, extract into the same folder and click Reload on the extensions page. You can also update the folder from the IDE.</small></footer>
+<footer><small data-i18n="permissions">Keep the browser open while the AI works.</small><small id="update-status" role="status" aria-live="polite"></small><button id="update" class="secondary" hidden data-i18n="update">Update</button><small data-i18n="updateInstructions">To update, click Update in Arara settings › Arara Browser.</small></footer>
 </main><script src="updates.js"></script><script src="popup.js"></script></body></html>
