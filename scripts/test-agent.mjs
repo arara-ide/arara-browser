@@ -8,7 +8,8 @@ import assert from 'node:assert/strict';
 
 const listen = server => new Promise(resolve => server.listen(0, '127.0.0.1', () => resolve(server.address().port)));
 const PAGE = '<!doctype html><title>Form</title><h1>Agent test</h1><input id="name" aria-label="Name"><button id="go" onclick="document.querySelector(\'#out\').textContent=\'Hello \'+document.querySelector(\'#name\').value;console.log(\'clicked\')">Greet</button><p id="out"></p>';
-const site = createServer((req, res) => res.writeHead(200, { 'content-type': 'text/html' }).end(PAGE));
+const LONG = '<!doctype html><title>Long</title><div style="height:2400px">Top</div><button id="far" onclick="this.textContent=\'Done\'">Far away</button><div style="height:1200px"></div>';
+const site = createServer((req, res) => res.writeHead(200, { 'content-type': 'text/html' }).end(req.url.includes('long') ? LONG : PAGE));
 const sitePort = await listen(site);
 const queue = [], results = new Map();
 const token = 'a'.repeat(48);
@@ -59,9 +60,27 @@ try {
   assert.equal((await run('evaluate_script', { function: '() => document.title' })).text, '"Form"');
   assert.equal(await first.locator('arara-cursor').count(), 1);
   assert.equal(await second.locator('arara-cursor').count(), 1);
+  const far = await context.newPage(); await far.goto(`${url}long`);
+  await far.bringToFront();
+  const farId = Number(/pageId=(\d+) Long/.exec((await run('list_pages')).text)?.[1]);
+  await run('select_page', { pageId: farId, bringToFront: false });
+  const farUid = /uid=(u\d+) button "Far away"/.exec((await run('take_snapshot')).text)?.[1];
+  assert.ok(farUid);
+  const scrollStarted = Date.now();
+  assert.ok(!(await run('click', { uid: farUid })).error);
+  const scrollMs = Date.now() - scrollStarted;
+  assert.equal(await far.locator('#far').innerText(), 'Done');
+  assert.ok(await far.evaluate(() => scrollY) > 1500, 'scrolled to the button');
+  assert.ok(await far.evaluate(() => { const box = document.querySelector('#far').getBoundingClientRect(); return box.top >= 0 && box.bottom <= innerHeight; }), 'button visible when the click returned');
+  assert.ok(scrollMs >= 300, `the click waited for the smooth scroll and the cursor (${scrollMs} ms)`);
+  const farTab = await worker.evaluate(() => chrome.tabs.query({ title: 'Long' }).then(tabs => tabs[0].id));
+  await worker.evaluate(id => chrome.tabs.setZoom(id, 2), farTab);
+  assert.equal(await worker.evaluate(id => globalThis.AraraTabs.hello(id).then(state => state.zoom), farTab), 2);
+  await first.bringToFront();
+  await run('select_page', { pageId: firstId, bringToFront: false });
   const shot = await run('take_screenshot');
   assert.equal(shot.images?.[0]?.mimeType, 'image/png');
-  console.log(`Agent in the user's tabs (snapshot, fill, click, read, console, script, screenshot, cursor in 2 tabs): PASS (Chromium ${context.browser()?.version() ?? ''})`);
+  console.log(`Agent in the user's tabs (snapshot, fill, click, read, console, script, screenshot, cursor in 2 tabs, smooth scroll before click, zoom-aware size): PASS (Chromium ${context.browser()?.version() ?? ''})`);
 } finally {
   await context.close(); site.close(); ide.close();
   await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
