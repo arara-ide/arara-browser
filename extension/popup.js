@@ -75,5 +75,10 @@ function renderOutdated(outdated) {
   q('outdated-manual').textContent = chrome.i18n.getMessage(firefox ? 'outdatedManualFirefox' : 'outdatedManual');
   q('outdated-download').onclick = () => chrome.tabs.create({ url: (firefox && outdated.xpi) || outdated.url });
 }
-chrome.storage.session.get('outdated').then(({ outdated }) => renderOutdated(outdated));
-chrome.storage.onChanged.addListener((changes, area) => { if (area === 'session' && changes.outdated) renderOutdated(changes.outdated.newValue); });
+async function checkOutdated() {
+  const current = chrome.runtime.getManifest().version;
+  const update = await AraraUpdates.freshness(current, chrome.storage.local).catch(() => null);
+  renderOutdated(update ? { current, latest: update.version, url: update.url, xpi: update.xpi } : null);
+}
+void checkOutdated();
+chrome.storage.onChanged.addListener((changes, area) => { if (area === 'local' && changes.releaseCheck) void checkOutdated(); });
