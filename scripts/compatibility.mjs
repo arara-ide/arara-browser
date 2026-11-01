@@ -1,4 +1,6 @@
 import { chromium } from 'playwright';
+import { createServer } from 'node:http';
+import { randomBytes } from 'node:crypto';
 import { mkdtemp, rm, readFile, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join, dirname } from 'node:path';
@@ -20,7 +22,15 @@ const context = await chromium.launchPersistentContext(profile, {
   channel: 'chromium', headless: true,
   args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
 });
+const token = randomBytes(32).toString('base64url');
+const ide = createServer((request, response) => {
+  request.resume();
+  if (request.headers.authorization !== `Bearer ${token}`) return response.writeHead(403).end();
+  if (request.method !== 'POST' || request.url !== '/poll') return response.writeHead(404).end();
+  response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ job: null, cancel: null }));
+});
 try {
+  await new Promise(resolve => ide.listen(0, '127.0.0.1', resolve));
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
   const id = new URL(worker.url()).hostname;
   assert.equal(await worker.evaluate(() => chrome.runtime.getManifest().version), manifest.version);
@@ -48,12 +58,20 @@ try {
   assert.equal(await page.locator('#copy, #disconnect, #chatgpt').count(), 0, 'one connection button, no copy or ChatGPT buttons');
   assert.equal(await page.locator('#connect').innerText(), await message('connect'));
   assert.equal(await page.locator('.code-field button').count(), 0, 'Show sits below the field');
-  await worker.evaluate(() => chrome.storage.session.set({ connectionStatus: { ok: true, time: Date.now() } }));
+  await worker.evaluate(connection => chrome.storage.session.set({ connection }), { port: ide.address().port, token });
   await page.waitForFunction(text => document.querySelector('#connect').textContent === text, await message('disconnect'));
+  const connectedAt = await worker.evaluate(async () => (await chrome.storage.session.get('connectionStatus')).connectionStatus.time);
+  await page.waitForFunction(async time => {
+    const { connectionStatus } = await chrome.storage.session.get('connectionStatus');
+    return connectionStatus?.ok === true && connectionStatus.time > time;
+  }, connectedAt);
+  assert.equal(await page.locator('#connect').innerText(), await message('disconnect'));
   assert.equal(await page.locator('#connect').evaluate(node => node.classList.contains('secondary')), true);
   await page.locator('#connect').click();
-  await page.waitForFunction(text => document.querySelector('#connect').textContent === text, await message('connect'));
+  await page.waitForFunction(() => document.querySelector('#status').textContent === chrome.i18n.getMessage('disconnectedNotice') && !document.querySelector('#connect').disabled);
+  assert.equal(await page.locator('#connect').innerText(), await message('connect'));
   assert.equal(await page.locator('#status').innerText(), await message('disconnectedNotice'));
+  assert.equal(await page.locator('#code').inputValue(), '');
   await worker.evaluate(() => chrome.storage.local.set({ releaseCheck: { current: chrome.runtime.getManifest().version, checked: Date.now(), update: null } }));
   await page.locator('#outdated').waitFor({ state: 'hidden' });
   const zipUrl = 'https://github.com/arara-ide/arara-browser/releases/download/v99.0.0/arara-browser-99.0.0.zip';
@@ -67,4 +85,10 @@ try {
   await page.locator('#outdated').waitFor({ state: 'hidden', timeout: 8000 });
   assert.deepEqual(errors, []);
   console.log(`Manifest V3, service worker, popup (single Connect/Disconnect button) and update flow: PASS (Chromium ${context.browser().version()})`);
-} finally { await context.close(); await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); }
+} finally {
+  try { await context.close(); }
+  finally {
+    await new Promise((resolve, reject) => ide.close(error => error ? reject(error) : resolve()));
+    await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  }
+}
