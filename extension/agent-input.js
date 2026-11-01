@@ -1,7 +1,7 @@
 (() => {
   if (globalThis.AraraInput && globalThis.__araraRuntime === chrome.runtime?.id) return;
   const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-  const CHARS_PER_MINUTE = 2000, MAX_TYPING_MS = 60000;
+  const CHARS_PER_MINUTE = 2000, MAX_TYPING_MS = 60000, FOCUS_BEFORE_TYPING_MS = 1000;
   const typingStep = total => Math.min(60000 / CHARS_PER_MINUTE, MAX_TYPING_MS / Math.max(1, total));
   const nativeSetter = element => Object.getOwnPropertyDescriptor(element.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : element.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype, 'value').set;
   const fire = (element, type, init = {}) => {
@@ -46,6 +46,8 @@
       return setValue(element, option.value);
     }
     if (!typable(element)) return setValue(element, value);
+    element.focus();
+    await delay(FOCUS_BEFORE_TYPING_MS);
     clear(element);
     await typeInto(element, value, step);
   }
@@ -84,5 +86,5 @@
     }
     throw new Error('Timed out waiting.');
   }
-  globalThis.AraraInput = { delay, fill, click, hover, key, type, scroll, waitFor, typingStep, CHARS_PER_MINUTE };
+  globalThis.AraraInput = { delay, fill, click, hover, key, type, scroll, waitFor, typingStep, CHARS_PER_MINUTE, FOCUS_BEFORE_TYPING_MS };
 })();

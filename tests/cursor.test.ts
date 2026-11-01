@@ -24,6 +24,26 @@ describe('AI cursor realism', () => {
     const { AraraCursor } = load('cursor.js', { document: { querySelectorAll: () => [] } }) as any;
     expect(AraraCursor.SIZE).toBe(22);
   });
+  it('focuses the field and waits at least 1 s before clearing it and typing the first letter', async () => {
+    const events: string[] = [];
+    class FakeEvent { type: string; data?: string; key?: string; constructor(type: string, init: Record<string, unknown> = {}) { this.type = type; Object.assign(this, init); } }
+    class HTMLInputElement { current = 'old'; get value() { return this.current; } set value(next: string) { this.current = next; } }
+    const field = Object.assign(new HTMLInputElement(), {
+      tagName: 'INPUT', type: 'text', isContentEditable: false,
+      focus: () => events.push('focus'),
+      dispatchEvent: (event: FakeEvent) => { if (event.type === 'input') events.push(`input ${event.data ?? 'clear'}`); return true; },
+    });
+    const { AraraInput } = load('agent-input.js', {
+      chrome: {}, HTMLInputElement, HTMLTextAreaElement: HTMLInputElement, HTMLSelectElement: HTMLInputElement,
+      Event: FakeEvent, InputEvent: FakeEvent, KeyboardEvent: FakeEvent, MouseEvent: FakeEvent, PointerEvent: FakeEvent,
+      setTimeout: (callback: () => void, ms: number) => { events.push(`wait ${ms}`); queueMicrotask(callback); },
+    }) as any;
+    await AraraInput.fill(field, 'Ab', 0);
+    expect(AraraInput.FOCUS_BEFORE_TYPING_MS).toBeGreaterThanOrEqual(1000);
+    expect(events.slice(0, 4)).toEqual(['focus', `wait ${AraraInput.FOCUS_BEFORE_TYPING_MS}`, 'focus', 'input clear']);
+    expect(events.indexOf('input A')).toBeGreaterThan(events.indexOf(`wait ${AraraInput.FOCUS_BEFORE_TYPING_MS}`));
+    expect(field.value).toBe('Ab');
+  });
   it('drifts in 70% of the cases, after 2 to 5 seconds', () => {
     const { AraraCursor } = load('cursor.js', { document: { querySelectorAll: () => [] } }) as any;
     expect(AraraCursor.driftDelay(() => 0.69)).toBe(2000 + 0.69 * 3000);
