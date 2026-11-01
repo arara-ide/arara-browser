@@ -24,7 +24,7 @@ describe('AI cursor realism', () => {
     const { AraraCursor } = load('cursor.js', { document: { querySelectorAll: () => [] } }) as any;
     expect(AraraCursor.SIZE).toBe(22);
   });
-  it('focuses the field and waits at least 1 s before clearing it and typing the first letter', async () => {
+  it('focuses the field and waits 500 ms before clearing it and typing the first letter', async () => {
     const events: string[] = [];
     class FakeEvent { type: string; data?: string; key?: string; constructor(type: string, init: Record<string, unknown> = {}) { this.type = type; Object.assign(this, init); } }
     class HTMLInputElement { current = 'old'; get value() { return this.current; } set value(next: string) { this.current = next; } }
@@ -39,7 +39,7 @@ describe('AI cursor realism', () => {
       setTimeout: (callback: () => void, ms: number) => { events.push(`wait ${ms}`); queueMicrotask(callback); },
     }) as any;
     await AraraInput.fill(field, 'Ab', 0);
-    expect(AraraInput.FOCUS_BEFORE_TYPING_MS).toBeGreaterThanOrEqual(1000);
+    expect(AraraInput.FOCUS_BEFORE_TYPING_MS).toBe(500);
     expect(events.slice(0, 4)).toEqual(['focus', `wait ${AraraInput.FOCUS_BEFORE_TYPING_MS}`, 'focus', 'input clear']);
     expect(events.indexOf('input A')).toBeGreaterThan(events.indexOf(`wait ${AraraInput.FOCUS_BEFORE_TYPING_MS}`));
     expect(field.value).toBe('Ab');
@@ -50,6 +50,14 @@ describe('AI cursor realism', () => {
     expect(AraraCursor.driftDelay(() => 0.7)).toBeNull();
     const delays = [0, 0.999].map(value => { const values = [0, value]; return AraraCursor.driftDelay(() => values.shift()!); });
     expect(delays).toEqual([2000, 2000 + 0.999 * 3000]);
+  });
+  it('rejects a field removed during the focus delay before clearing or typing', async () => {
+    const field = { tagName: 'INPUT', type: 'text', isConnected: true, focus: vi.fn() };
+    const { AraraInput } = load('agent-input.js', {
+      chrome: {}, setTimeout: (callback: () => void) => { field.isConnected = false; queueMicrotask(callback); },
+    }) as any;
+    await expect(AraraInput.fill(field, 'Arara')).rejects.toThrow('Call take_snapshot again');
+    expect(field.focus).toHaveBeenCalledOnce();
   });
   function agent(scroll?: { settled: Promise<void> }) {
     vi.useFakeTimers();
