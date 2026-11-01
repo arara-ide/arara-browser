@@ -1,6 +1,6 @@
 {
   "name": "arara-browser",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "Extensão de navegador do Arara Code",
   "license": "MIT",
