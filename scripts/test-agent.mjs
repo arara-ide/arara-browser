@@ -9,8 +9,9 @@ import assert from 'node:assert/strict';
 const listen = server => new Promise(resolve => server.listen(0, '127.0.0.1', () => resolve(server.address().port)));
 const PAGE = '<!doctype html><title>Form</title><h1>Agent test</h1><input id="name" aria-label="Name"><button id="go" onclick="document.querySelector(\'#out\').textContent=\'Hello \'+document.querySelector(\'#name\').value;console.log(\'clicked\')">Greet</button><p id="out"></p>';
 const LONG = '<!doctype html><title>Long</title><div style="height:2400px">Top</div><button id="far" onclick="this.textContent=\'Done\'">Far away</button><div style="height:1200px"></div>';
+const LATE = '<!doctype html><title>Late</title><div style="height:2400px">Top</div><input id="late" aria-label="Late field"><div style="height:1200px"></div><script>window.scrolls=0;addEventListener("scroll",()=>window.scrolls++);const late=document.querySelector("#late");late.addEventListener("focus",()=>{window.focusedAt=performance.now();setTimeout(()=>{late.value=""},400)});late.addEventListener("input",()=>{window.firstInput??=performance.now()})</script>';
 const MANY = '<!doctype html><title>Many</title><button id="a" onclick="this.dataset.n=(+this.dataset.n||0)+1" style="margin:40px">First</button><button id="b" onclick="this.dataset.n=(+this.dataset.n||0)+1" style="margin:40px 300px">Second</button><div style="height:2200px"></div><button id="c" onclick="this.dataset.n=(+this.dataset.n||0)+1">Third</button><div style="height:1500px"></div>';
-const site = createServer((req, res) => res.writeHead(200, { 'content-type': 'text/html' }).end(req.url.includes('many') ? MANY : req.url.includes('long') ? LONG : PAGE));
+const site = createServer((req, res) => res.writeHead(200, { 'content-type': 'text/html' }).end(req.url.includes('many') ? MANY : req.url.includes('late') ? LATE : req.url.includes('long') ? LONG : PAGE));
 const sitePort = await listen(site);
 const queue = [], results = new Map();
 const token = 'a'.repeat(48);
@@ -74,6 +75,18 @@ try {
   assert.ok(await far.evaluate(() => scrollY) > 1500, 'scrolled to the button');
   assert.ok(await far.evaluate(() => { const box = document.querySelector('#far').getBoundingClientRect(); return box.top >= 0 && box.bottom <= innerHeight; }), 'button visible when the click returned');
   assert.ok(scrollMs >= 300, `the click waited for the smooth scroll and the cursor (${scrollMs} ms)`);
+  const late = await context.newPage(); await late.goto(`${url}late`);
+  await late.bringToFront();
+  const lateId = Number(/pageId=(\d+) Late/.exec((await run('list_pages')).text)?.[1]);
+  await run('select_page', { pageId: lateId, bringToFront: false });
+  const lateUid = /uid=(u\d+) [^\n]*"Late field"/.exec((await run('take_snapshot')).text)?.[1];
+  assert.ok(lateUid);
+  assert.ok(!(await run('fill', { uid: lateUid, value: 'Arara' })).error);
+  await late.waitForTimeout(600);
+  const typed = await late.evaluate(() => ({ value: document.querySelector('#late').value, wait: Math.round(window.firstInput - window.focusedAt), scrolls: window.scrolls, y: Math.round(scrollY) }));
+  assert.equal(typed.value, 'Arara', `no letter lost when the page resets the field right after focus (${JSON.stringify(typed)})`);
+  assert.ok(typed.wait >= 980, `waited at least 1 s after focus before typing (${typed.wait} ms)`);
+  assert.ok(typed.y > 1500 && typed.scrolls > 3, `scrolled smoothly to the field before typing (${JSON.stringify(typed)})`);
   const many = await context.newPage(); await many.goto(`${url}many`);
   await many.bringToFront();
   const manyId = Number(/pageId=(\d+) Many/.exec((await run('list_pages')).text)?.[1]);
@@ -127,7 +140,7 @@ try {
   await run('select_page', { pageId: firstId, bringToFront: false });
   const shot = await run('take_screenshot');
   assert.equal(shot.images?.[0]?.mimeType, 'image/png');
-  console.log(`Agent in the user's tabs (snapshot, fill, click, read, console, script, screenshot, cursor in 2 tabs, smooth scroll before click, several clicks one by one with scroll, script clicks through the cursor, read with smooth scroll and cursor chase, zoom-aware size): PASS (Chromium ${context.browser()?.version() ?? ''})`);
+  console.log(`Agent in the user's tabs (snapshot, fill, click, read, console, script, screenshot, cursor in 2 tabs, smooth scroll before click, fill waits 1 s after focus with smooth scroll, several clicks one by one with scroll, script clicks through the cursor, read with smooth scroll and cursor chase, zoom-aware size): PASS (Chromium ${context.browser()?.version() ?? ''})`);
 } finally {
   await context.close(); site.close(); ide.close();
   await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
