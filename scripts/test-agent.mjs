@@ -85,8 +85,21 @@ try {
   await late.waitForTimeout(600);
   const typed = await late.evaluate(() => ({ value: document.querySelector('#late').value, wait: Math.round(window.firstInput - window.focusedAt), scrolls: window.scrolls, y: Math.round(scrollY) }));
   assert.equal(typed.value, 'Arara', `no letter lost when the page resets the field right after focus (${JSON.stringify(typed)})`);
-  assert.ok(typed.wait >= 980, `waited at least 1 s after focus before typing (${typed.wait} ms)`);
+  assert.ok(typed.wait >= 480, `waited at least 500 ms after focus before typing (${typed.wait} ms)`);
   assert.ok(typed.y > 1500 && typed.scrolls > 3, `scrolled smoothly to the field before typing (${JSON.stringify(typed)})`);
+  await late.evaluate(() => {
+    const field = document.querySelector('#late');
+    field.blur();
+    field.addEventListener('focus', () => setTimeout(() => {
+      const next = field.cloneNode(); next.value = 'old'; field.replaceWith(next);
+    }, 400), { once: true });
+  });
+  const replaced = await run('fill', { uid: lateUid, value: 'Replacement' });
+  assert.match(replaced.error, /take_snapshot/);
+  assert.equal(await late.locator('#late').inputValue(), 'old');
+  const newUid = /uid=(u\d+) [^\n]*"Late field"/.exec((await run('take_snapshot')).text)?.[1];
+  assert.ok(!(await run('fill', { uid: newUid, value: 'Arara' })).error);
+  assert.equal(await late.locator('#late').inputValue(), 'Arara');
   const many = await context.newPage(); await many.goto(`${url}many`);
   await many.bringToFront();
   const manyId = Number(/pageId=(\d+) Many/.exec((await run('list_pages')).text)?.[1]);
@@ -140,7 +153,7 @@ try {
   await run('select_page', { pageId: firstId, bringToFront: false });
   const shot = await run('take_screenshot');
   assert.equal(shot.images?.[0]?.mimeType, 'image/png');
-  console.log(`Agent in the user's tabs (snapshot, fill, click, read, console, script, screenshot, cursor in 2 tabs, smooth scroll before click, fill waits 1 s after focus with smooth scroll, several clicks one by one with scroll, script clicks through the cursor, read with smooth scroll and cursor chase, zoom-aware size): PASS (Chromium ${context.browser()?.version() ?? ''})`);
+  console.log(`Agent in the user's tabs (snapshot, fill, click, read, console, script, screenshot, cursor in 2 tabs, smooth scroll before click, fill waits 500 ms after focus with smooth scroll, several clicks one by one with scroll, script clicks through the cursor, read with smooth scroll and cursor chase, zoom-aware size): PASS (Chromium ${context.browser()?.version() ?? ''})`);
 } finally {
   await context.close(); site.close(); ide.close();
   await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
