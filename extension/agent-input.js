@@ -7,7 +7,7 @@
   const nativeSetter = element => Object.getOwnPropertyDescriptor(element.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : element.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype, 'value').set;
   const fire = (element, type, init = {}) => {
     const Kind = type.startsWith('key') ? KeyboardEvent : type.startsWith('pointer') ? PointerEvent : MouseEvent;
-    element.dispatchEvent(new Kind(type, { bubbles: true, cancelable: true, composed: true, ...init }));
+    return element.dispatchEvent(new Kind(type, { bubbles: true, cancelable: true, composed: true, ...init }));
   };
   function setValue(element, value) {
     element.focus();
@@ -62,23 +62,56 @@
     if (count > 1) fire(element, 'dblclick', { clientX: x, clientY: y });
   }
   function hover(element, x, y) { for (const type of ['pointerover', 'mouseover', 'mousemove']) fire(element, type, { clientX: x, clientY: y }); }
-  function key(name, element = document.activeElement ?? document.body) {
+  async function key(name, element = document.activeElement ?? document.body) {
     const parts = String(name).split('+'), keyName = parts.pop();
     const init = { key: keyName, ctrlKey: parts.includes('Control'), shiftKey: parts.includes('Shift'), altKey: parts.includes('Alt'), metaKey: parts.includes('Meta') };
-    fire(element, 'keydown', init);
-    if (keyName === 'Enter' && element.form && element.tagName === 'INPUT') element.form.requestSubmit();
+    const allowed = fire(element, 'keydown', init);
+    if (allowed && keyName === 'Enter' && element.form && element.tagName === 'INPUT') element.form.requestSubmit();
     fire(element, 'keyup', init);
+    if (!allowed || init.ctrlKey || init.altKey || init.metaKey || element.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(element.tagName)) return;
+    const space = keyName === 'Space' || keyName === ' ';
+    if (space && (element.tagName === 'BUTTON' || element.tagName === 'A')) return;
+    const direction = { PageDown: 'down', PageUp: 'up', ArrowDown: 'down', ArrowUp: 'up', ArrowLeft: 'left', ArrowRight: 'right' }[keyName] ?? (space ? init.shiftKey ? 'up' : 'down' : null);
+    if (keyName === 'Home' || keyName === 'End') return scroll(element, { to: keyName === 'Home' ? 'top' : 'bottom' });
+    if (!direction) return;
+    const target = scrollTarget(element, direction === 'left' || direction === 'right');
+    return scroll(target, { direction, amount: keyName.startsWith('Arrow') ? 40 : Math.round(target.clientHeight * 0.9) });
   }
   async function type(text) {
     const element = document.activeElement;
     if (!element || element === document.body) throw new Error('Focus a field first (click or fill).');
     await typeInto(element, text, typingStep(String(text).length));
   }
-  function scroll(element, args) {
-    if (element) return element.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    if (args.to) return window.scrollTo({ top: args.to === 'top' ? 0 : document.documentElement.scrollHeight, behavior: 'smooth' });
+  function scrollTarget(element, horizontal = false) {
+    const root = document.scrollingElement ?? document.documentElement;
+    const canScroll = target => {
+      const style = getComputedStyle(target), overflow = horizontal ? style.overflowX : style.overflowY;
+      const range = horizontal ? target.scrollWidth - target.clientWidth : target.scrollHeight - target.clientHeight;
+      return range > 1 && (target === root ? !['hidden', 'clip'].includes(overflow) : /^(auto|scroll|overlay)$/.test(overflow));
+    };
+    for (let node = element; node; node = node.parentElement) if (canScroll(node)) return node;
+    if (canScroll(root)) return root;
+    let best = root, area = 0;
+    for (const node of document.querySelectorAll('*')) {
+      if (!canScroll(node)) continue;
+      const box = node.getBoundingClientRect(), style = getComputedStyle(node);
+      if (style.visibility === 'hidden' || style.visibility === 'collapse') continue;
+      const visible = Math.max(0, Math.min(box.right, innerWidth) - Math.max(box.left, 0)) * Math.max(0, Math.min(box.bottom, innerHeight) - Math.max(box.top, 0));
+      if (visible > area) { area = visible; best = node; }
+    }
+    return best;
+  }
+  async function scroll(element, args) {
+    const behavior = globalThis.AraraDom.smooth() ? 'smooth' : 'auto';
+    if (element && !args.direction && !args.to && args.amount === undefined) {
+      element.scrollIntoView({ block: 'center', behavior });
+      return globalThis.AraraDom.settle(() => { const box = element.getBoundingClientRect(); return `${box.left},${box.top}`; });
+    }
+    const target = scrollTarget(element, args.direction === 'left' || args.direction === 'right');
     const amount = Number(args.amount) || 600, d = args.direction ?? 'down';
-    window.scrollBy({ top: d === 'down' ? amount : d === 'up' ? -amount : 0, left: d === 'right' ? amount : d === 'left' ? -amount : 0, behavior: 'smooth' });
+    if (args.to) target.scrollTo({ top: args.to === 'top' ? 0 : target.scrollHeight, behavior });
+    else target.scrollBy({ top: d === 'down' ? amount : d === 'up' ? -amount : 0, left: d === 'right' ? amount : d === 'left' ? -amount : 0, behavior });
+    await globalThis.AraraDom.settle(() => `${target.scrollLeft},${target.scrollTop}`);
   }
   async function waitFor(args) {
     const end = Date.now() + Math.min(Number(args.timeout) || 10000, 60000);
