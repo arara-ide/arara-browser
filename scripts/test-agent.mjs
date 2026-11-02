@@ -11,7 +11,8 @@ const PAGE = '<!doctype html><title>Form</title><h1>Agent test</h1><input id="na
 const LONG = '<!doctype html><title>Long</title><div style="height:2400px">Top</div><button id="far" onclick="this.textContent=\'Done\'">Far away</button><div style="height:1200px"></div>';
 const LATE = '<!doctype html><title>Late</title><div style="height:2400px">Top</div><input id="late" aria-label="Late field"><div style="height:1200px"></div><script>window.scrolls=0;addEventListener("scroll",()=>window.scrolls++);const late=document.querySelector("#late");late.addEventListener("focus",()=>{window.focusedAt=performance.now();setTimeout(()=>{late.value=""},400)});late.addEventListener("input",()=>{window.firstInput??=performance.now()})</script>';
 const MANY = '<!doctype html><title>Many</title><button id="a" onclick="this.dataset.n=(+this.dataset.n||0)+1" style="margin:40px">First</button><button id="b" onclick="this.dataset.n=(+this.dataset.n||0)+1" style="margin:40px 300px">Second</button><div style="height:2200px"></div><button id="c" onclick="this.dataset.n=(+this.dataset.n||0)+1">Third</button><div style="height:1500px"></div>';
-const site = createServer((req, res) => res.writeHead(200, { 'content-type': 'text/html' }).end(req.url.includes('many') ? MANY : req.url.includes('late') ? LATE : req.url.includes('long') ? LONG : PAGE));
+const NESTED = '<!doctype html><title>Nested</title><style>html,body{margin:0;height:100%;overflow:hidden}header{height:40px}main{height:calc(100vh - 40px);overflow:auto}section{height:100vh}section:nth-child(1){background:rgb(240,30,30)}section:nth-child(2){background:rgb(30,30,240)}section:nth-child(3){background:rgb(30,240,30)}</style><header>Fixed header</header><main tabindex="0"><section>First</section><section>Second</section><section>Third</section></main>';
+const site = createServer((req, res) => res.writeHead(200, { 'content-type': 'text/html' }).end(req.url.includes('nested') ? NESTED : req.url.includes('many') ? MANY : req.url.includes('late') ? LATE : req.url.includes('long') ? LONG : PAGE));
 const sitePort = await listen(site);
 const queue = [], results = new Map();
 const token = 'a'.repeat(48);
@@ -46,6 +47,34 @@ try {
   const pages = (await run('list_pages')).text.split('\n');
   const firstId = Number(/pageId=(\d+)/.exec(pages.find(line => line.endsWith(url)) ?? '')?.[1]);
   assert.ok(Number.isInteger(firstId), pages.join('\n'));
+  const nested = await context.newPage(); await nested.goto(`${url}nested`); await nested.bringToFront();
+  const nestedId = Number(/pageId=(\d+) Nested/.exec((await run('list_pages')).text)?.[1]);
+  await run('select_page', { pageId: nestedId, bringToFront: false });
+  const scrollPosition = () => nested.locator('main').evaluate(element => Math.round(element.scrollTop));
+  const screenshotColor = async () => {
+    const shot = await run('take_screenshot'); assert.ok(!shot.error, shot.error);
+    return nested.evaluate(async data => {
+      const image = new Image(); image.src = `data:image/png;base64,${data}`; await image.decode();
+      const canvas = document.createElement('canvas'); canvas.width = image.width; canvas.height = image.height;
+      const context = canvas.getContext('2d'); context.drawImage(image, 0, 0);
+      return Array.from(context.getImageData(Math.round(image.width / 2), Math.round(100 * devicePixelRatio), 1, 1).data).slice(0, 3);
+    }, shot.images[0].data);
+  };
+  assert.deepEqual(await screenshotColor(), [240, 30, 30], 'initial screenshot shows the first section');
+  assert.ok(!(await run('scroll', { direction: 'down', amount: 650 })).error);
+  assert.ok(await scrollPosition() >= 640, 'scroll moves the inner viewport while the document is locked');
+  assert.equal(await nested.evaluate(() => scrollY), 0, 'the document remains fixed');
+  assert.ok(!(await run('scroll', { to: 'top' })).error);
+  assert.equal(await scrollPosition(), 0);
+  assert.ok(!(await run('press_key', { key: 'PageDown' })).error);
+  assert.ok(await scrollPosition() > 300, 'synthetic PageDown scrolls the inner viewport');
+  assert.ok(!(await run('press_key', { key: 'PageUp' })).error);
+  assert.equal(await scrollPosition(), 0);
+  assert.ok(!(await run('press_key', { key: 'End' })).error);
+  assert.ok(await nested.locator('main').evaluate(element => Math.abs(element.scrollHeight - element.clientHeight - element.scrollTop) < 2), 'End reaches the bottom before responding');
+  assert.deepEqual(await screenshotColor(), [30, 240, 30], 'screenshot updates after scrolling without navigation or clicks');
+  assert.ok(!(await run('press_key', { key: 'Home' })).error);
+  assert.equal(await scrollPosition(), 0);
   await run('select_page', { pageId: firstId, bringToFront: false });
   const snapshot = await run('take_snapshot');
   const field = /uid=(u\d+) [^\n]*"Name"/.exec(snapshot.text)?.[1], button = /uid=(u\d+) button "Greet"/.exec(snapshot.text)?.[1];
@@ -153,7 +182,7 @@ try {
   await run('select_page', { pageId: firstId, bringToFront: false });
   const shot = await run('take_screenshot');
   assert.equal(shot.images?.[0]?.mimeType, 'image/png');
-  console.log(`Agent in the user's tabs (snapshot, fill, click, read, console, script, screenshot, cursor in 2 tabs, smooth scroll before click, fill waits 500 ms after focus with smooth scroll, several clicks one by one with scroll, script clicks through the cursor, read with smooth scroll and cursor chase, zoom-aware size): PASS (Chromium ${context.browser()?.version() ?? ''})`);
+  console.log(`Agent in the user's tabs (snapshot, fill, click, read, console, script, screenshot, nested viewport scroll, PageUp/PageDown/Home/End, screenshot pixels after scroll, cursor in 2 tabs, smooth scroll before click, fill waits 500 ms after focus with smooth scroll, several clicks one by one with scroll, script clicks through the cursor, read with smooth scroll and cursor chase, zoom-aware size): PASS (Chromium ${context.browser()?.version() ?? ''})`);
 } finally {
   await context.close(); site.close(); ide.close();
   await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });

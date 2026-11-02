@@ -103,5 +103,5 @@
     const box = element.getBoundingClientRect();
     return pointIn(box, random) ?? { x: Math.round(box.left + box.width / 2), y: Math.round(box.top + box.height / 2) };
   }
-  globalThis.AraraDom = { find, snapshot, read, point, pointIn, reveal, settle, aimAt, visibleEnough, describe };
+  globalThis.AraraDom = { find, snapshot, read, point, pointIn, reveal, settle, smooth, aimAt, visibleEnough, describe };
 })();

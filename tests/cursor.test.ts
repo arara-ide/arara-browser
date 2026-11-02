@@ -167,4 +167,18 @@ describe('AI cursor realism', () => {
     expect(await done).toEqual({ text: 'text' });
     expect(f.cursor.press).not.toHaveBeenCalled();
   });
+  it.each(['scroll', 'press_key'])('waits for %s to settle before acknowledging the command', async action => {
+    const f = agent();
+    let finish!: () => void;
+    const settled = new Promise<void>(resolve => { finish = resolve; });
+    const input = f.scope.AraraInput as Record<string, unknown>;
+    input[action === 'scroll' ? 'scroll' : 'key'] = () => settled;
+    let answered = false;
+    const done = f.run(action).then(value => { answered = true; return value; });
+    await vi.advanceTimersByTimeAsync(500);
+    expect(answered).toBe(false);
+    finish();
+    await vi.advanceTimersByTimeAsync(500);
+    expect(await done).toMatchObject({ text: expect.stringContaining(`${action} done.`) });
+  });
 });

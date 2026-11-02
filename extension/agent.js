@@ -2,7 +2,7 @@
   if (globalThis.__araraAgent && globalThis.__araraRuntime === chrome.runtime?.id) return;
   globalThis.__araraAgent = true;
   globalThis.__araraRuntime = chrome.runtime?.id;
-  const { find, snapshot, read, pointIn, reveal, settle, aimAt, describe } = globalThis.AraraDom;
+  const { find, snapshot, read, pointIn, reveal, aimAt, describe } = globalThis.AraraDom;
   const input = globalThis.AraraInput;
   const logs = { console: [], network: [] };
   document.addEventListener('arara-page-log', event => {
@@ -119,9 +119,9 @@
         for (const item of items) { const field = required(find(item), action); await cursorAt(field, 'type'); await input.fill(field, String(item.value ?? ''), step); last = field; }
         break;
       }
-      case 'press_key': reading++; input.key(args.key ?? 'Enter', element ?? undefined); break;
-      case 'type_text': reading++; await input.type(args.text ?? ''); if (args.submitKey) input.key(args.submitKey); break;
-      case 'scroll': reading++; input.scroll(element, args); await settle(() => `${scrollX},${scrollY}${element ? ',' + Math.round(element.getBoundingClientRect().top) : ''}`); break;
+      case 'press_key': reading++; await input.key(args.key ?? 'Enter', element ?? undefined); break;
+      case 'type_text': reading++; await input.type(args.text ?? ''); if (args.submitKey) await input.key(args.submitKey); break;
+      case 'scroll': reading++; await input.scroll(element, args); break;
       case 'wait_for': await input.waitFor(args); break;
       case 'list_console_messages': return listing('console');
       case 'get_console_message': return entry('console', args.msgid ?? args.id);
