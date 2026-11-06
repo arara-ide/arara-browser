@@ -101,20 +101,27 @@
     return `Window resized to ${size.width}×${size.height}.`;
   }
   async function inject(tabId) {
-    try {
-      await chrome.scripting.executeScript({ target: { tabId }, world: 'MAIN', files: ['page-hooks.js'] }).catch(() => {});
-      await chrome.scripting.executeScript({ target: { tabId }, files: ['cursor.js', 'agent-dom.js', 'agent-input.js', 'agent.js'] });
-      return true;
-    } catch { return false; }
+    await chrome.scripting.executeScript({ target: { tabId, frameIds: [0] }, world: 'MAIN', files: ['page-hooks.js'] }).catch(() => {});
+    const results = await chrome.scripting.executeScript({ target: { tabId, frameIds: [0] }, world: 'ISOLATED', files: ['cursor.js', 'agent-dom.js', 'agent-input.js', 'agent.js'] });
+    for (const result of results) if (result.error) throw new Error(result.error.message ?? String(result.error));
+  }
+  async function pageAction(tabId, action, args) {
+    const [result] = await chrome.scripting.executeScript({ target: { tabId, frameIds: [0] }, world: 'ISOLATED', args: [action, args], func: async (action, args) => {
+      if (!globalThis.AraraPageAgent) return { missing: true };
+      try { return { text: await globalThis.AraraPageAgent.run(action, args) }; }
+      catch (error) { return { error: String(error?.message ?? error) }; }
+    } });
+    if (result?.error) throw new Error(result.error.message ?? String(result.error));
+    if (!result?.result) throw new Error('The page action did not return a result. Check the page before retrying.');
+    return result.result;
   }
   async function inPage(action, args) {
     const tab = await current();
     if (!pageAllowed(tab.url)) throw new Error(`This tab (${tab.url}) does not allow extensions. Navigate to a web page first.`);
     await setCursor({ active: true, tabId: tab.id });
-    const message = { type: 'agentRun', action, args };
-    let reply = await chrome.tabs.sendMessage(tab.id, message).catch(() => null);
-    if (!reply && await inject(tab.id)) reply = await chrome.tabs.sendMessage(tab.id, message).catch(() => null);
-    if (!reply) throw new Error('The page did not respond. Reload the tab and try again.');
+    let reply = await pageAction(tab.id, action, args);
+    if (reply.missing) { await inject(tab.id); reply = await pageAction(tab.id, action, args); }
+    if (reply.missing) throw new Error('The page agent did not initialize.');
     if (reply.error) throw new Error(reply.error);
     return reply.text;
   }
