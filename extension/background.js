@@ -21,7 +21,7 @@ async function bindings() {
   return conversationBindings;
 }
 async function rememberWorkTab(tab, contextId) {
-  if (tab?.id && /^https:\/\/chatgpt\.com\/(?:.*\/)?c\/[^/?#]+/.test(tab.url ?? '')) {
+  if (tab?.id && conversationUrl(tab.url)) {
     const { workTabBinding } = await chrome.storage.local.get('workTabBinding');
     const previousContext = workTabBinding?.id === tab.id && workTabBinding.url === tab.url ? workTabBinding.contextId : undefined;
     const binding = { id: tab.id, url: tab.url, contextId: contextId ?? previousContext };
@@ -29,6 +29,19 @@ async function rememberWorkTab(tab, contextId) {
     if (binding.contextId) conversationBindings[binding.contextId] = binding;
     await chrome.storage.local.set({ workTabBinding: binding, conversationBindings });
   }
+}
+const conversationUrl = url => /^https:\/\/chatgpt\.com\/(?:.*\/)?c\/[^/?#]+/.test(url ?? '');
+async function chatTabFor(job, binding) {
+  const home = 'https://chatgpt.com/';
+  const alive = id => id ? chrome.tabs.get(id).then(tab => tab?.url?.startsWith(home) ? tab : null, () => null) : null;
+  const bound = await alive(binding?.id);
+  if (bound && bound.url === binding.url) return { tab: bound, reuse: true };
+  const open = (await chrome.tabs.query({ url: `${home}*` }).catch(() => [])).filter(tab => tab.id && !tab.discarded);
+  const candidate = await alive(workTab) ?? bound ?? open.find(tab => !conversationUrl(tab.url));
+  if (!candidate) return { tab: await chrome.tabs.create({ url: binding?.url ?? home, active: false }), reuse: false };
+  const target = binding?.url ?? (job.kind === 'send' && job.contextId && conversationUrl(candidate.url) ? home : null);
+  if (!target || candidate.url === target) return { tab: candidate, reuse: true };
+  return { tab: await chrome.tabs.update(candidate.id, { url: target }), reuse: false };
 }
 function poll() {
   return polling ??= runPoll().finally(() => { polling = null; });
@@ -69,19 +82,14 @@ async function runPoll() {
       active = job; handed = null;
       try {
         const binding = job.kind === 'send' && job.contextId ? (await bindings())[job.contextId] : undefined;
-        const candidateId = job.kind === 'send' && job.contextId ? binding?.id : workTab;
-        const existing = candidateId ? await chrome.tabs.get(candidateId).catch(() => null) : null;
-        const reuse = existing?.url?.startsWith('https://chatgpt.com/') && (!binding || existing.url === binding.url);
-        const tab = reuse
-          ? existing
-          : await chrome.tabs.create({ url: binding?.url ?? 'https://chatgpt.com/', active: job.kind === 'models' });
+        const { tab, reuse } = await chatTabFor(job, binding);
         if (job.kind === 'send') {
           active = { ...job, prompt: binding ? job.prompt : (job.initialPrompt ?? job.prompt) };
           delete active.initialPrompt;
         }
         browserTab = workTab = tab.id;
         await chrome.storage.session.set({ active, browserTab, workTab });
-        await rememberWorkTab(tab);
+        if (reuse) await rememberWorkTab(tab);
         if (reuse && tab.status !== 'loading') {
           handed = job.id;
           await chrome.storage.session.set({ handed });
@@ -180,7 +188,7 @@ const initialized = (async () => {
   if (!workTab) {
     const { workTabBinding } = await chrome.storage.local.get('workTabBinding');
     const tab = workTabBinding?.id ? await chrome.tabs.get(workTabBinding.id).catch(() => null) : null;
-    if (tab?.url === workTabBinding?.url && /^https:\/\/chatgpt\.com\/(?:.*\/)?c\/[^/?#]+/.test(tab?.url ?? '')) {
+    if (tab?.url === workTabBinding?.url && conversationUrl(tab?.url)) {
       workTab = tab.id;
       await chrome.storage.session.set({ workTab });
     }
