@@ -30,7 +30,7 @@ async function fixture(failReceipt = false, workTabBinding?: { id: number; url: 
   const chrome = {
     i18n: { getMessage: (key: string, values: string[] | string = []) => String(JSON.parse(readFileSync("extension/_locales/pt_BR/messages.json", "utf8"))[key]?.message ?? key).replace(/\$(\d)/g, (_, n) => [values].flat()[Number(n) - 1] ?? '') },
     storage: { session: store(session), local: store(local) },
-    tabs: { create: createTab, get: vi.fn(async (id: number) => ({ id, url: 'https://chatgpt.com/c/test' })), update: updateTab, sendMessage: vi.fn(async () => {}), remove: vi.fn(async () => {}), onRemoved: { addListener: vi.fn() } },
+    tabs: { create: createTab, query: vi.fn(async () => []), get: vi.fn(async (id: number) => ({ id, url: 'https://chatgpt.com/c/test' })), update: updateTab, sendMessage: vi.fn(async () => {}), remove: vi.fn(async () => {}), onRemoved: { addListener: vi.fn() } },
     runtime: { onMessage: { addListener: (fn: typeof listener) => { listener = fn; } }, getManifest: () => ({ version: '0.2.0' }), reload: vi.fn() },
     alarms: { create: vi.fn(async () => {}), onAlarm: { addListener: vi.fn() } },
   };
@@ -84,32 +84,35 @@ describe('browser worker delivery', () => {
       await f.send({ type: 'result', id, result: { text: 'Done' } });
       await vi.waitFor(() => expect(f.session.has('active')).toBe(false));
     }
-    expect(f.updateTab).not.toHaveBeenCalled();
-    expect(f.createTab).toHaveBeenCalledTimes(3);
+    expect(f.updateTab).toHaveBeenCalledTimes(2);
+    expect(f.updateTab).toHaveBeenCalledWith(7, { url: 'https://chatgpt.com/' });
+    expect(f.createTab).toHaveBeenCalledTimes(1);
     expect(Object.keys(f.local.get('conversationBindings') as object)).toEqual(['conversation-a', 'conversation-b']);
   });
-  it('routes different IDE conversations to separate tabs and returns to the original tab', async () => {
+  it('routes different IDE conversations through the same tab and returns to the original conversation', async () => {
     const f = await fixture();
     await f.send({ type: 'ready' });
     await f.send({ type: 'result', id: f.job.id, result: { text: 'Done' } });
     await vi.waitFor(() => expect(f.session.has('active')).toBe(false));
-    f.getTab.mockImplementation(async id => ({ id, url: `https://chatgpt.com/c/chat-${id}` }));
-    for (const [id, contextId, tabId, fresh] of [
-      ['first', 'a', 8, true], ['second', 'b', 9, true], ['return', 'a', 8, false],
+    const urls = new Map<number, string>([[7, 'https://chatgpt.com/c/test']]);
+    f.getTab.mockImplementation(async id => ({ id, url: urls.get(id) }));
+    f.updateTab.mockImplementation((async (id: number, { url }: { url: string }) => { urls.set(id, url); return { id, url }; }) as never);
+    for (const [id, contextId, tabId, fresh, landed] of [
+      ['first', 'a', 7, true, 'https://chatgpt.com/c/chat-a'], ['second', 'b', 7, true, 'https://chatgpt.com/c/chat-b'], ['return', 'a', 7, true, 'https://chatgpt.com/c/chat-a'],
     ] as const) {
-      if (fresh) f.createTab.mockResolvedValueOnce({ id: tabId });
       const job = { id, kind: 'send', contextId, prompt: 'Next', initialPrompt: 'Setup' };
       f.request.mockResolvedValueOnce(Response.json({ job, cancel: null })); f.tick();
       await vi.waitFor(() => expect(f.session.get('browserTab')).toBe(tabId));
-      if (fresh) expect(await f.send({ type: 'ready' }, tabId)).toMatchObject({ job: { prompt: 'Setup' } });
-      else expect(f.sendMessage).toHaveBeenCalledWith(tabId, { type: 'job', job: { id, kind: 'send', contextId, prompt: 'Next' } });
+      expect(await f.send({ type: 'ready' }, tabId)).toMatchObject({ job: { prompt: id === 'return' ? 'Next' : 'Setup' } });
+      urls.set(tabId, landed);
       await f.send({ type: 'submitted', id }, tabId);
       await f.send({ type: 'result', id, result: { text: 'Done' } }, tabId);
       await vi.waitFor(() => expect(f.session.has('active')).toBe(false));
     }
-    expect(f.createTab).toHaveBeenCalledTimes(3);
+    expect(f.createTab).toHaveBeenCalledTimes(1);
+    expect(f.updateTab).toHaveBeenLastCalledWith(7, { url: 'https://chatgpt.com/c/chat-a' });
     expect(f.local.get('conversationBindings')).toMatchObject({
-      a: { id: 8, url: 'https://chatgpt.com/c/chat-8' }, b: { id: 9, url: 'https://chatgpt.com/c/chat-9' },
+      a: { id: 7, url: 'https://chatgpt.com/c/chat-a' }, b: { id: 7, url: 'https://chatgpt.com/c/chat-b' },
     });
   });
   it('restores the same conversation after extension reload clears session storage', async () => {
@@ -123,13 +126,26 @@ describe('browser worker delivery', () => {
     const f = await fixture(false, { id: 7, url: 'https://chatgpt.com/c/test', contextId: 'saved' });
     await f.send({ type: 'result', id: f.job.id, result: { text: 'Done' } });
     await vi.waitFor(() => expect(f.session.has('active')).toBe(false));
-    f.getTab.mockRejectedValueOnce(new Error('Tab closed'));
+    f.getTab.mockRejectedValue(new Error('Tab closed'));
     const job = { id: 'resume', kind: 'send', contextId: 'saved', prompt: 'Continue', initialPrompt: 'Full history' };
     f.request.mockResolvedValueOnce(Response.json({ job, cancel: null })); f.tick();
     await vi.waitFor(() => expect(f.createTab).toHaveBeenCalledWith({ url: 'https://chatgpt.com/c/test', active: false }));
     expect(await f.send({ type: 'ready' })).toMatchObject({ job: { prompt: 'Continue' } });
     const polls = f.request.mock.calls.filter(([url]) => String(url).endsWith('/poll'));
     expect(JSON.parse(polls.at(-1)![1]?.body as string).contexts).toContain('saved');
+  });
+  it('uses an open ChatGPT home tab for model discovery instead of opening another tab', async () => {
+    const g = await fixture();
+    expect(g.createTab).toHaveBeenCalledTimes(1);
+    (g.chrome.tabs.query as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: 5, url: 'https://chatgpt.com/' }]);
+    g.getTab.mockImplementation(async (id: number) => id === 5 ? { id, url: 'https://chatgpt.com/', status: 'complete' } : Promise.reject(new Error('gone')));
+    await g.send({ type: 'result', id: g.job.id, result: { text: 'Done' } });
+    await vi.waitFor(() => expect(g.session.has('active')).toBe(false));
+    const job = { id: 'models', kind: 'models' };
+    g.request.mockResolvedValueOnce(Response.json({ job, cancel: null })); g.tick();
+    await vi.waitFor(() => expect(g.sendMessage).toHaveBeenCalledWith(5, { type: 'job', job }));
+    expect(g.createTab).toHaveBeenCalledTimes(1);
+    expect(g.updateTab).not.toHaveBeenCalled();
   });
   it('does not restore a tab whose URL no longer matches the saved conversation', async () => {
     const f = await fixture(false, { id: 7, url: 'https://chatgpt.com/c/another-conversation' });

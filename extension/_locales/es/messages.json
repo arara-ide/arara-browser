@@ -151,5 +151,8 @@
   },
   "outdatedRefusal": {
     "message": "Arara Browser está desactualizado (versión $1, la más nueva es $2). Pide al usuario que lo actualice en Arara Code: Configuración › Arara Browser › Actualizar."
+  },
+  "modelDescription": {
+    "message": "Modelo ofrecido por ChatGPT en el navegador."
   }
 }
