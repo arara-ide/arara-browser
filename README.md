@@ -141,9 +141,12 @@ npx playwright install --with-deps chromium
 npm run test:content
 npm run test:compatibility
 npm run test:agent
+npm run test:firefox
 ```
 
-`test:agent` carrega a extensão real no Chromium, conecta a uma IDE simulada e usa o agente em páginas locais: lista abas, lê, preenche, clica, roda script, vê o console e tira print, conferindo o cursor em duas abas. O Firefox não tem teste automatizado; confira manualmente com uma extensão temporária.
+`test:agent` carrega a extensão real no Chromium, conecta a uma IDE simulada e usa o agente em páginas locais: lista abas, lê, preenche, clica, roda script, vê o console e tira print, conferindo o cursor em duas abas.
+
+`test:firefox` usa o Firefox instalado e o pacote XPI de `dist/`, com perfil temporário, página local sob CSP restrita e sem contas reais. Valida recuperação dos scripts ausentes, ações sem depender de respostas de mensagens, preenchimento, clique único, leitura, tecla, cursor e retomada após reiniciar a extensão. Usa `web-ext@10.8.0` via `npm exec` como ferramenta de teste. Defina `ARARA_FIREFOX_BINARY` para outro executável e `ARARA_BROWSER_PACKAGE` para conferir outro XPI. O teste não instala a correção no perfil pessoal.
 
 Node 22/24. CI executa a matriz em Linux, Windows e macOS. Testes cobrem entrega/retomada de mensagens, seleção de modelos, cancelamento e respostas em página simulada, além de carregar a extensão real no Chromium com Manifest V3, service worker, popup e atualização. Testes não usam contas reais nem dependem da interface ao vivo do ChatGPT. Alterações do site exigem validação manual adicional. Chrome e Edge compartilham o alvo Chromium, mas não são executados separadamente na CI.
 

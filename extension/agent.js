@@ -1,7 +1,5 @@
 (() => {
-  if (globalThis.__araraAgent && globalThis.__araraRuntime === chrome.runtime?.id) return;
-  globalThis.__araraAgent = true;
-  globalThis.__araraRuntime = chrome.runtime?.id;
+  if (globalThis.AraraPageAgent && globalThis.__araraRuntime === chrome.runtime?.id) return;
   const { find, snapshot, read, pointIn, reveal, aimAt, describe } = globalThis.AraraDom;
   const input = globalThis.AraraInput;
   const logs = { console: [], network: [] };
@@ -141,4 +139,7 @@
     return true;
   });
   chrome.runtime.sendMessage({ type: 'agentHello' }).then(state => globalThis.AraraCursor?.render(state)).catch(() => {});
+  globalThis.AraraPageAgent = { run };
+  globalThis.__araraAgent = true;
+  globalThis.__araraRuntime = chrome.runtime?.id;
 })();

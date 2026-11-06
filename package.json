@@ -14,7 +14,8 @@
     "build": "node scripts/build.mjs",
     "test:compatibility": "node scripts/compatibility.mjs",
     "test:content": "node scripts/test-content.cjs",
-    "test:agent": "node scripts/test-agent.mjs"
+    "test:agent": "node scripts/test-agent.mjs",
+    "test:firefox": "node scripts/test-firefox-agent.mjs"
   },
   "devDependencies": {
     "fflate": "0.8.3",

@@ -20,7 +20,7 @@ function fixture() {
       onUpdated: { addListener: vi.fn(), removeListener: vi.fn() }, onRemoved: { addListener: vi.fn() }, onActivated: { addListener: vi.fn() },
     },
     windows: { update: vi.fn(async () => {}) },
-    scripting: { executeScript: vi.fn(async () => [{ result: { value: '42' } }]) },
+    scripting: { executeScript: vi.fn(async (request: { world?: string }) => [{ result: request.world === 'MAIN' ? { value: '42' } : { text: 'clicked' } }]) },
   };
   const scope: Record<string, unknown> = { chrome, setTimeout, clearTimeout };
   scope.globalThis = scope;
@@ -32,9 +32,38 @@ describe('agent in the user browser', () => {
   it('runs page actions in the selected tab and shows the cursor in every web tab', async () => {
     const f = fixture();
     expect(await f.agent.execute({ action: 'click', args: { uid: 'u1' } })).toEqual({ text: 'clicked' });
-    expect(f.sendMessage).toHaveBeenCalledWith(1, { type: 'agentRun', action: 'click', args: { uid: 'u1' } });
+    expect(f.chrome.scripting.executeScript).toHaveBeenCalledWith(expect.objectContaining({ target: { tabId: 1, frameIds: [0] }, world: 'ISOLATED', args: ['click', { uid: 'u1' }] }));
     const states = f.sendMessage.mock.calls.filter(([, m]) => (m as { type: string }).type === 'agentCursorState');
     expect(states.map(([id, m]) => [id, (m as { state: { here: boolean } }).state.here])).toEqual([[1, true], [2, false]]);
+  });
+  it('executes page actions without depending on a content message reply', async () => {
+    const f = fixture();
+    f.sendMessage.mockRejectedValue(new Error('No response'));
+    expect(await f.agent.execute({ action: 'take_snapshot' })).toEqual({ text: 'clicked' });
+    expect(f.sendMessage.mock.calls.some(([, message]) => message.type === 'agentRun')).toBe(false);
+  });
+  it('injects a missing page runner before executing an action once', async () => {
+    const f = fixture();
+    f.chrome.scripting.executeScript.mockResolvedValueOnce([{ result: { missing: true } }])
+      .mockResolvedValueOnce([{}]).mockResolvedValueOnce([{}]);
+    expect(await f.agent.execute({ action: 'fill', args: { uid: 'u1', value: 'Name' } })).toEqual({ text: 'clicked' });
+    expect(f.chrome.scripting.executeScript).toHaveBeenCalledTimes(4);
+  });
+  it('preserves Firefox per-frame injection errors', async () => {
+    const f = fixture();
+    f.chrome.scripting.executeScript.mockResolvedValueOnce([{ result: { missing: true } }])
+      .mockResolvedValueOnce([{}]).mockResolvedValueOnce([{ error: new Error('agent.js failed to initialize') }]);
+    expect(await f.agent.execute({ action: 'take_snapshot' })).toEqual({ error: 'agent.js failed to initialize' });
+    expect(f.chrome.scripting.executeScript).toHaveBeenCalledTimes(3);
+  });
+  it('does not retry actions after a page execution error or a lost result', async () => {
+    const f = fixture();
+    f.chrome.scripting.executeScript.mockRejectedValueOnce(new Error('Document unloaded'));
+    expect(await f.agent.execute({ action: 'click', args: { uid: 'u1' } })).toEqual({ error: 'Document unloaded' });
+    expect(f.chrome.scripting.executeScript).toHaveBeenCalledTimes(1);
+    f.chrome.scripting.executeScript.mockResolvedValueOnce([]);
+    expect((await f.agent.execute({ action: 'click', args: { uid: 'u1' } })).error).toMatch(/did not return a result/);
+    expect(f.chrome.scripting.executeScript).toHaveBeenCalledTimes(2);
   });
   it('manages tabs, screenshots, scripts and devices like the native browser', async () => {
     const f = fixture();
