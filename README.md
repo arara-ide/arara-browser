@@ -3,7 +3,7 @@
 Extensão Manifest V3, open source (MIT), que conecta o seu navegador (Chrome, Edge, Brave e outros baseados em Chromium, além do Firefox) ao Arara Code. Ela tem dois usos:
 
 - **ChatGPT no navegador:** a sessão do ChatGPT vira uma plataforma do chat da IDE. O navegador mantém o login; a IDE executa ferramentas e controla permissões.
-- **Seu navegador para a IA:** ao mencionar **Seu navegador** no chat do Arara Code ou do Arara Bot, a IA trabalha nas suas abas reais, com os seus logins, e o cursor dela aparece em todas as abas enquanto ela trabalha.
+- **Meu navegador para a IA:** ao mencionar **Meu navegador** no chat do Arara Code ou do Arara Bot, a IA trabalha nas suas abas reais, com os seus logins, e o cursor dela aparece em todas as abas enquanto ela trabalha.
 
 ## Branches e contribuição
 
@@ -102,17 +102,17 @@ Consulte os [Termos de Uso](https://openai.com/policies/terms-of-use/), os [term
 
 ## Instalar
 
-Na IDE, abra **Configurações › Arara Browser** (o comando **Arara: Conectar seu navegador** e o botão de conexão do ChatGPT levam para lá) e clique em **Instalar no Chrome, Edge ou Brave**. A IDE baixa a release pública, verifica SHA-256 e abre `Arara-Browser`. No navegador, abra **Extensões → Modo do desenvolvedor → Carregar sem compactação** e selecione essa pasta.
+Na IDE, abra **Configurações › Arara Browser** (o comando **Arara: Conectar meu navegador** e o botão de conexão do ChatGPT levam para lá) e clique em **Instalar no Chrome, Edge ou Brave**. A IDE baixa a release pública, verifica SHA-256 e abre `Arara-Browser`. No navegador, abra **Extensões → Modo do desenvolvedor → Carregar sem compactação** e selecione essa pasta.
 
 Também é possível baixar o ZIP em [Releases](https://github.com/arara-ide/arara-browser/releases/latest) e extrair manualmente. Não selecione “Source code”. Chrome, Edge, Brave e outros Chromium 121 ou superior.
 
 No Firefox 128 ou superior, use **Baixar para Firefox** na mesma aba: a IDE baixa `arara-browser-<versão>.xpi` e confere o SHA-256. Todo build gera esse arquivo (Artifact da `development` e release da `main`). Enquanto a extensão está em teste, o arquivo não é assinado pela Mozilla, e o Firefox normal só aceita como extensão temporária: abra `about:debugging#/runtime/this-firefox` (a IDE copia o endereço), clique em **Carregar extensão temporária…** e escolha o `.xpi`. Ela some quando o Firefox fecha. No Firefox Developer Edition ou Nightly dá para instalar de vez arrastando o arquivo, depois de mudar `xpinstall.signatures.required` para `false` em `about:config`. Se o repositório tiver `AMO_JWT_ISSUER` e `AMO_JWT_SECRET`, o CI assina o arquivo (canal unlisted da Mozilla, sem listagem na loja), publica `updates.json`, e aí basta arrastar o arquivo para o Firefox e ele se atualiza sozinho. Se o Firefox não conceder o acesso às páginas, abra o popup e clique em **Permitir todos os sites**. Para desenvolver, `about:debugging#/runtime/this-firefox` → **Carregar extensão temporária…** continua funcionando.
 
-Na IDE, rode **Arara: Conectar seu navegador** (ou **ChatGPT → Conexão com navegador**) para ver o código. Abra o ícone da extensão, cole o código e clique em **Conectar**. Mantenha o navegador aberto. Reiniciar a IDE ou o navegador exige parear novamente. Um pareamento serve às duas funções e a todas as janelas do Arara Code no mesmo computador.
+Na IDE, rode **Arara: Conectar meu navegador** (ou **ChatGPT → Conexão com navegador**) para ver o código. Abra o ícone da extensão, cole o código e clique em **Conectar**. Mantenha o navegador aberto. Reiniciar a IDE ou o navegador exige parear novamente. Um pareamento serve às duas funções e a todas as janelas do Arara Code no mesmo computador.
 
-## Seu navegador para a IA
+## Meu navegador para a IA
 
-No chat lateral, abra **@ → Seu navegador** (ou digite `@seu`) e peça o que precisa. No Arara Bot, o bot precisa ter o navegador ativado. A IA pode listar, abrir, escolher e fechar abas; navegar, voltar e recarregar; ler a página como texto com identificadores de elementos; clicar, passar o mouse, preencher campos e formulários, digitar e pressionar teclas; rolar; esperar um texto; executar um script na página; ver o console e as requisições de rede desde o carregamento; tirar print da área visível; e mudar o tamanho da janela para desktop ou celular.
+No chat lateral, abra **@ → Meu navegador** (ou digite `@meu`) e peça o que precisa. No Arara Bot, o bot precisa ter o navegador ativado. A IA pode listar, abrir, escolher e fechar abas; navegar, voltar e recarregar; ler a página como texto com identificadores de elementos; clicar, passar o mouse, preencher campos e formulários, digitar e pressionar teclas; rolar; esperar um texto; executar um script na página; ver o console e as requisições de rede desde o carregamento; tirar print da área visível; e mudar o tamanho da janela para desktop ou celular.
 
 O cursor da IA tem o tamanho fixo de 22 px em todas as abas, mesmo com zoom diferente em cada site, e aparece enquanto ela trabalha. Se o elemento está fora da tela, a página rola suavemente até ele e o cursor vai junto, durante e depois da rolagem; a ação só termina quando os dois param. Ele anda até um ponto aleatório do elemento por um caminho curvo e, em 70% das vezes, depois de 2 a 5 s, vai para outro ponto do mesmo elemento se nada mais precisou dele nesse tempo. Ele passa pelos trechos que a IA está lendo e digita a 2.000 caracteres por minuto (textos longos aceleram para caber em 60 s); a ação só termina quando a digitação acaba. A aba em que ela age mostra um aviso, e o cursor some depois de alguns segundos sem ações. Páginas internas do navegador (configurações, lojas de extensões, `about:`/`chrome://`) não aceitam extensões. A IA não digita senhas: ela pede para você entrar.
 

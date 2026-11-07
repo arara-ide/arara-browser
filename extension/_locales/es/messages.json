@@ -12,7 +12,7 @@
     "message": "Desconectado"
   },
   "headline": {
-    "message": "Conecta tu navegador a Arara Code"
+    "message": "Conecta Mi navegador a Arara Code"
   },
   "intro": {
     "message": "La IA de Arara Code trabaja en tus pestañas, y ChatGPT se convierte en un chat en la IDE."
@@ -117,7 +117,7 @@
     "message": "Documento ocupado"
   },
   "agentIntro": {
-    "message": "Para usarlo, escribe @ en el chat y elige Tu navegador."
+    "message": "Para usarlo, escribe @ en el chat y elige Mi navegador."
   },
   "allowSites": {
     "message": "Permitir todos los sitios"
