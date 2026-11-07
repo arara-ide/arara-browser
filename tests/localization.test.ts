@@ -20,3 +20,11 @@ it('resolves every static popup and runtime reference from the native catalogs',
   }
   for (const ref of readFileSync('extension/popup.html', 'utf8').matchAll(/data-i18n="([^"]+)"/g)) expect(catalogs[0][ref[1]], ref[1]).toBeDefined();
 });
+
+it('uses the current My Browser mention in every language', () => {
+  for (const [index, label] of ['My Browser', 'Meu navegador', 'Mi navegador'].entries()) {
+    const messages = Object.values(catalogs[index]).map(entry => entry.message);
+    expect(messages.some(message => message.includes(label))).toBe(true);
+    expect(messages.join(' ')).not.toMatch(/Your browser|Seu navegador|Tu navegador/);
+  }
+});
