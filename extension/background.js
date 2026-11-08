@@ -1,9 +1,10 @@
 if (typeof importScripts === 'function') importScripts('updates.js', 'agent-tabs.js', 'agent-worker.js');
 let polling, worker, active, browserTab, handed, completed, workTab;
 async function api(path, data) {
-  const { connection } = await chrome.storage.session.get('connection');
+  const { connection } = await chrome.storage.local.get('connection');
   if (!connection) throw new Error(chrome.i18n.getMessage('connectFirst'));
   const response = await fetch(`http://127.0.0.1:${connection.port}${path}`, { method: 'POST', headers: { authorization: `Bearer ${connection.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ worker, ...data }), signal: AbortSignal.timeout(12000) });
+  if (response.status === 403) await chrome.storage.local.remove(['connection']);
   if (!response.ok) throw new Error(chrome.i18n.getMessage('ideDisconnected'));
   return response.json();
 }
@@ -57,7 +58,7 @@ async function runPoll() {
     const refusal = update ? chrome.i18n.getMessage('outdatedRefusal', [version, update.version]) : undefined;
     const { job, cancel, disconnected, agent, reload } = await api('/poll', { contexts: Object.keys(await bindings()), version, outdated: update ? { latest: update.version } : null });
     if (reload === true && !active && !disconnected) {
-      const { connection } = await chrome.storage.session.get('connection');
+      const { connection } = await chrome.storage.local.get('connection');
       await chrome.storage.local.set({ reloadConnection: { connection, at: Date.now() } });
       chrome.runtime.reload();
       return { ok: true };
@@ -75,7 +76,7 @@ async function runPoll() {
         await chrome.tabs.sendMessage(tabId, { type: 'cancel', id: cancel }).catch(() => {});
       }
     }
-    if (disconnected) { await clearWork(); await chrome.storage.session.remove(['connection']); throw new Error(chrome.i18n.getMessage('disconnectedByIde')); }
+    if (disconnected) { await clearWork(); await chrome.storage.local.remove(['connection']); throw new Error(chrome.i18n.getMessage('disconnectedByIde')); }
     if (job && refusal) await api('/result', { id: job.id, result: { error: refusal } });
     else if (job && active) await api('/result', { id: job.id, result: { error: chrome.i18n.getMessage('busy') } });
     if (job && !active && !refusal) {
@@ -115,9 +116,9 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
       const connection = message.connection;
       if (!connection || !Number.isInteger(connection.port) || connection.port < 1 || connection.port > 65535 || !/^[\w-]{40,100}$/.test(connection.token)) return reply({ ok: false, error: chrome.i18n.getMessage('invalidCode') });
       await polling;
-      const previous = (await chrome.storage.session.get('connection')).connection;
+      const previous = (await chrome.storage.local.get('connection')).connection;
       if (active && (previous?.port !== connection.port || previous?.token !== connection.token)) return reply({ ok: false, error: chrome.i18n.getMessage('stopFirst') });
-      await chrome.storage.session.set({ connection });
+      await chrome.storage.local.set({ connection });
       reply(await poll());
     })().catch(error => reply({ ok: false, error: error.message }));
     return;
@@ -130,7 +131,8 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
         await api('/result', { id: active.id, result: { error: chrome.i18n.getMessage('userDisconnected') } }).catch(() => {});
       }
       await clearWork();
-      await chrome.storage.session.remove(['connection', 'connectionStatus']);
+      await chrome.storage.local.remove(['connection']);
+      await chrome.storage.session.remove(['connectionStatus']);
       reply({ ok: true });
     })().catch(() => reply({ ok: false }));
     return;
@@ -181,7 +183,7 @@ const initialized = (async () => {
   const { reloadConnection } = await chrome.storage.local.get('reloadConnection');
   if (reloadConnection) {
     await chrome.storage.local.remove('reloadConnection');
-    if (reloadConnection.connection && Date.now() - reloadConnection.at < 120000) await chrome.storage.session.set({ connection: reloadConnection.connection });
+    if (reloadConnection.connection && Date.now() - reloadConnection.at < 120000) await chrome.storage.local.set({ connection: reloadConnection.connection });
   }
   const saved = await chrome.storage.session.get(['active', 'browserTab', 'handed', 'completed', 'workTab']);
   active = saved.active; browserTab = saved.browserTab; handed = saved.handed; completed = saved.completed; workTab = saved.workTab;

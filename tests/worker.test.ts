@@ -5,8 +5,8 @@ import { describe, expect, it, vi } from 'vitest';
 const source = readFileSync('extension/background.js', 'utf8');
 
 async function fixture(failReceipt = false, workTabBinding?: { id: number; url: string; contextId?: string }, extra: { update?: { version: string; url: string }; reload?: boolean } = {}) {
-  const session = new Map<string, unknown>([['connection', { port: 12345, token: 'test-token' }]]);
-  const local = new Map<string, unknown>([['worker', 'worker-1']]);
+  const session = new Map<string, unknown>();
+  const local = new Map<string, unknown>([['worker', 'worker-1'], ['connection', { port: 12345, token: 'test-token' }]]);
   if (workTabBinding) local.set('workTabBinding', workTabBinding);
   const store = (values: Map<string, unknown>) => ({
     get: async (keys: string | string[]) => Object.fromEntries((Array.isArray(keys) ? keys : [keys]).map(k => [k, values.get(k)])),
@@ -174,6 +174,12 @@ describe('browser worker delivery', () => {
     expect(receipts).toHaveLength(1);
     expect(JSON.parse(receipts[0][1]?.body as string).result.error).toContain('Nenhuma mensagem foi reenviada');
   });
+  it('keeps the pairing in local storage so it survives a browser restart, and forgets it when the IDE rejects it', async () => {
+    const f = await fixture();
+    expect(f.local.get('connection')).toMatchObject({ token: 'test-token' });
+    f.request.mockImplementation(async () => new Response('', { status: 403 }));
+    await vi.waitFor(() => { f.tick(); expect(f.local.has('connection')).toBe(false); });
+  });
   it('retries a stored receipt after a network failure without sending again', async () => {
     const f = await fixture(true);
     await f.send({ type: 'ready' });
@@ -183,8 +189,8 @@ describe('browser worker delivery', () => {
     await vi.waitFor(() => expect(f.session.has('completed')).toBe(false));
     expect(f.request.mock.calls.filter(([url]) => String(url).endsWith('/result'))).toHaveLength(2);
     expect(f.createTab).toHaveBeenCalledTimes(1);
-    expect(f.session.get('connection')).toMatchObject({ token: 'test-token' });
-    expect(f.local.has('connection')).toBe(false);
+    expect(f.local.get('connection')).toMatchObject({ token: 'test-token' });
+    expect(f.session.has('connection')).toBe(false);
   });
   it('discovers models repeatedly in the existing page without navigating it', async () => {
     const f = await fixture();

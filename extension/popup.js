@@ -36,11 +36,11 @@ q('connect').onclick = async () => {
   try { await (q('connect').dataset.connected === 'true' ? disconnect() : connect()); }
   finally { q('connect').disabled = false; }
 };
-  chrome.storage.session.get(['connection', 'connectionStatus']).then(({ connection, connectionStatus }) => {
+  Promise.all([chrome.storage.local.get('connection'), chrome.storage.session.get('connectionStatus')]).then(([{ connection }, { connectionStatus }]) => {
     render({ code: connection ? encode(connection) : '', connected: connectionStatus?.ok === true && Date.now() - connectionStatus.time < 45000 });
   });
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'session' && changes.connection) render({ code: changes.connection.newValue ? encode(changes.connection.newValue) : '' });
+    if (area === 'local' && changes.connection) render({ code: changes.connection.newValue ? encode(changes.connection.newValue) : '' });
     if (area === 'session' && changes.connectionStatus) render({ connected: changes.connectionStatus.newValue?.ok === true });
   });
 
