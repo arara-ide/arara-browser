@@ -41,9 +41,14 @@ try {
   const first = await context.newPage(); await first.goto(url);
   const second = await context.newPage(); await second.goto(`${url}?second`);
   await first.bringToFront();
-  await worker.evaluate(connection => chrome.storage.session.set({ connection }), { port: idePort, token });
+  await worker.evaluate(connection => chrome.storage.local.set({ connection }), { port: idePort, token });
   let sequence = 0;
-  const run = (action, args = {}) => new Promise(resolve => { const id = `c${++sequence}`; results.set(id, resolve); queue.push({ id, action, args }); });
+  const run = (action, args = {}) => new Promise((resolve, reject) => {
+    const id = `c${++sequence}`;
+    const timer = setTimeout(() => { results.delete(id); reject(new Error(`Agent action timed out: ${action}`)); }, 15000);
+    results.set(id, result => { clearTimeout(timer); results.delete(id); resolve(result); });
+    queue.push({ id, action, args });
+  });
   const pages = (await run('list_pages')).text.split('\n');
   const firstId = Number(/pageId=(\d+)/.exec(pages.find(line => line.endsWith(url)) ?? '')?.[1]);
   assert.ok(Number.isInteger(firstId), pages.join('\n'));
@@ -184,6 +189,6 @@ try {
   assert.equal(shot.images?.[0]?.mimeType, 'image/png');
   console.log(`Agent in the user's tabs (snapshot, fill, click, read, console, script, screenshot, nested viewport scroll, PageUp/PageDown/Home/End, screenshot pixels after scroll, cursor in 2 tabs, smooth scroll before click, fill waits 500 ms after focus with smooth scroll, several clicks one by one with scroll, script clicks through the cursor, read with smooth scroll and cursor chase, zoom-aware size): PASS (Chromium ${context.browser()?.version() ?? ''})`);
 } finally {
-  await context.close(); site.close(); ide.close();
+  await context.close(); site.closeAllConnections(); ide.closeAllConnections(); site.close(); ide.close();
   await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
 }

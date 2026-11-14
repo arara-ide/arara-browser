@@ -182,3 +182,28 @@ describe('AI cursor realism', () => {
     expect(await done).toMatchObject({ text: expect.stringContaining(`${action} done.`) });
   });
 });
+
+it('advances a visible native overlay with an external clock while WebKit reports its document hidden', async () => {
+  let now = 0;
+  const frame = vi.fn();
+  const pointer = { style: {}, classList: { add() {}, remove() {} } };
+  const badge = { style: {}, textContent: '' };
+  const host = { isConnected: false, style: {}, attachShadow: () => ({ innerHTML: '', getElementById: (id: string) => id === 'p' ? pointer : badge }), remove() { this.isConnected = false; } };
+  const document = { hidden: true, querySelectorAll: () => [], createElement: () => host, documentElement: { append: () => { host.isConnected = true; } } };
+  const { AraraCursor: cursor } = load('cursor.js', { document, getComputedStyle: () => ({ zoom: '1' }), performance: { now: () => now }, requestAnimationFrame: frame, cancelAnimationFrame() {}, matchMedia: () => ({ matches: false }) }) as any;
+  cursor.render({ active: true, externalClock: true });
+  const moving = cursor.moveTo(700, 400);
+  expect(cursor.position).toEqual({ x: 48, y: 48 });
+  now = 250; cursor.tick();
+  expect(cursor.position.x).toBeGreaterThan(48); expect(cursor.position.x).toBeLessThan(700);
+  expect(frame).not.toHaveBeenCalled();
+  now = 1000; cursor.tick(); await moving;
+  expect(cursor.position).toEqual({ x: 700, y: 400 });
+  const stopped = cursor.moveTo(10, 20);
+  cursor.render({ active: false }); await stopped;
+  now = 2000; cursor.tick();
+  expect(cursor.position).toEqual({ x: 700, y: 400 });
+  cursor.render({ active: true });
+  await cursor.moveTo(10, 20);
+  expect(cursor.position).toEqual({ x: 10, y: 20 });
+});
