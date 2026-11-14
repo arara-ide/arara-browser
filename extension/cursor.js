@@ -2,9 +2,9 @@
   if (globalThis.AraraCursor && globalThis.__araraRuntime === chrome.runtime?.id) return;
   for (const stale of document.querySelectorAll('arara-cursor')) stale.remove();
   const SIZE = 22, TIP = { x: SIZE * 4 / 24, y: SIZE * 2 / 24 };
-  let host, pointer, badge, frame = 0, motion, finish, scale = 1, pos = { x: 48, y: 48 }, target = { ...pos };
+  let host, pointer, badge, frame = 0, motion, finish, advance, externalClock = false, scale = 1, pos = { x: 48, y: 48 }, target = { ...pos };
   const ARROW = `<svg width="${SIZE}" height="${SIZE}" viewBox="0 0 24 24"><path d="M4 2l15 9-7 1.6L8.6 20z" fill="#fff" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
-  const still = () => document.hidden || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+  const still = () => !externalClock && document.hidden || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
   const ease = t => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
   const pageZoom = () => Number.parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
   const sizeFor = (browserZoom = 1) => 1 / (Number(browserZoom) > 0 ? Number(browserZoom) : 1);
@@ -35,7 +35,7 @@
   }
   const durationFor = (from, to) => Math.min(750, Math.max(220, Math.hypot(to.x - from.x, to.y - from.y) * 0.9));
   function stop() {
-    cancelAnimationFrame(frame); motion = undefined;
+    cancelAnimationFrame(frame); motion = undefined; advance = undefined;
     const pending = finish; finish = undefined; pending?.();
   }
   function animate(step) {
@@ -43,8 +43,9 @@
     return new Promise(resolve => {
       const end = () => { if (finish === end) { finish = undefined; motion = undefined; } resolve(); };
       finish = end;
-      const tick = now => { if (finish !== end) return; if (step(now)) end(); else frame = requestAnimationFrame(tick); };
-      frame = requestAnimationFrame(tick);
+      const tick = now => { if (finish !== end) return; if (step(now)) { advance = undefined; end(); } else if (!externalClock) frame = requestAnimationFrame(tick); };
+      if (externalClock) advance = tick;
+      else frame = requestAnimationFrame(tick);
     });
   }
   function moveTo(x, y, speed = 1) {
@@ -72,6 +73,7 @@
   }
   function render(next) {
     if (!next?.active) { stop(); host?.remove(); host = undefined; return; }
+    externalClock = next.externalClock === true;
     const fresh = !host?.isConnected;
     mount();
     resize(next.zoom ?? 1);
@@ -86,5 +88,5 @@
   }
   const DRIFT_CHANCE = 0.7, DRIFT_MIN_MS = 2000, DRIFT_MAX_MS = 5000;
   const driftDelay = (random = Math.random) => random() < DRIFT_CHANCE ? DRIFT_MIN_MS + random() * (DRIFT_MAX_MS - DRIFT_MIN_MS) : null;
-  globalThis.AraraCursor = { render, moveTo, chase, press, durationFor, driftDelay, sizeFor, SIZE, get visible() { return !!host?.isConnected; }, get position() { return { ...pos }; }, owns: element => !!host && (element === host || host.contains(element)) };
+  globalThis.AraraCursor = { render, moveTo, chase, press, tick: () => advance?.(performance.now()), durationFor, driftDelay, sizeFor, SIZE, get visible() { return !!host?.isConnected; }, get position() { return { ...pos }; }, owns: element => !!host && (element === host || host.contains(element)) };
 })();
