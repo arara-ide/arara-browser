@@ -13,7 +13,9 @@
     const signed = release.assets.some(asset => asset.name === xpiName && asset.browser_download_url === xpi && asset.state === 'uploaded');
     return { version, url, ...(signed ? { xpi } : {}) };
   }
-  const CHECK_EVERY_MS = 6 * 60 * 60 * 1000;
+  const CHECK_EVERY_MS = 12 * 60 * 60 * 1000;
+  const RETRY_AFTER_MS = 10 * 60 * 1000;
+  let pending;
   async function check(current) {
     const response = await fetch('https://api.github.com/repos/arara-ide/arara-browser/releases/latest', {
       headers: { Accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(10000), cache: 'no-store',
@@ -21,14 +23,23 @@
     if (!response.ok) throw new Error(`GitHub: HTTP ${response.status}`);
     return releaseUpdate(await response.json(), current);
   }
-  async function freshness(current, storage, now = Date.now(), force = false) {
+  async function refresh(current, storage, now, force) {
     const { releaseCheck } = await storage.get('releaseCheck');
-    if (!force && releaseCheck?.current === current && now - releaseCheck.checked < CHECK_EVERY_MS) return releaseCheck.update ?? null;
+    const cached = releaseCheck?.current === current ? releaseCheck : undefined;
+    if (cached?.failed && now >= cached.attempted && now - cached.attempted < RETRY_AFTER_MS) return cached.update ?? null;
+    if (!force && !cached?.failed && now >= cached?.checked && now - cached.checked < CHECK_EVERY_MS) return cached.update ?? null;
     try {
       const update = await check(current);
-      await storage.set({ releaseCheck: { current, checked: now, update } });
+      await storage.set({ releaseCheck: { current, checked: now, attempted: now, failed: false, update } });
       return update;
-    } catch { return releaseCheck?.current === current ? releaseCheck.update ?? null : null; }
+    } catch {
+      const update = cached?.update ?? null;
+      await storage.set({ releaseCheck: { current, checked: cached?.checked, attempted: now, failed: true, update } });
+      return update;
+    }
   }
-  globalThis.AraraUpdates = { releaseUpdate, check, freshness, CHECK_EVERY_MS };
+  function freshness(current, storage, now = Date.now(), force = false) {
+    return pending ??= refresh(current, storage, now, force).finally(() => { pending = null; });
+  }
+  globalThis.AraraUpdates = { releaseUpdate, check, freshness, CHECK_EVERY_MS, RETRY_AFTER_MS };
 })();
