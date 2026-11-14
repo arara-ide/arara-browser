@@ -41,6 +41,13 @@ async function fixture(failReceipt = false, workTabBinding?: { id: number; url: 
   return { chrome, job, send, tick, request, session, local, createTab, updateTab, removeTab: chrome.tabs.remove, sendMessage: chrome.tabs.sendMessage, getTab: chrome.tabs.get, popup: (message: unknown) => new Promise<any>(resolve => listener(message, {}, resolve)) };
 }
 describe('outdated extension and self-update', () => {
+  it('serves the popup through the same background release cache and reports cached failures', async () => {
+    const f = await fixture();
+    expect(await f.popup({ type: 'releaseCheck' })).toEqual({ update: null, failed: false });
+    f.local.set('releaseCheck', { failed: true });
+    expect(await f.popup({ type: 'releaseCheck' })).toEqual({ update: null, failed: true });
+    expect(await f.send({ type: 'releaseCheck' })).toMatchObject({ ok: false });
+  });
   it('refuses work while a newer release exists, tells the IDE the version and shows it in the popup', async () => {
     const f = await fixture(false, undefined, { update: { version: '0.3.0', url: 'https://github.com/arara-ide/arara-browser/releases/download/v0.3.0/arara-browser-0.3.0.zip' } });
     await vi.waitFor(() => expect(f.request.mock.calls.some(([url]) => String(url).endsWith('/result'))).toBe(true));

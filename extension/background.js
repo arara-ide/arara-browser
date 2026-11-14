@@ -111,7 +111,16 @@ async function runPoll() {
 }
 chrome.runtime.onMessage.addListener((message, sender, reply) => {
   void initialized.then(() => {
-  if (!sender.tab && message.type === 'connect') {
+  const fromPopup = !sender.tab || sender.url === chrome.runtime.getURL?.('popup.html');
+  if (fromPopup && message.type === 'releaseCheck') {
+    void (async () => {
+      const update = await globalThis.AraraUpdates.freshness(chrome.runtime.getManifest().version, chrome.storage.local);
+      const { releaseCheck } = await chrome.storage.local.get('releaseCheck');
+      reply({ update, failed: releaseCheck?.failed === true });
+    })().catch(() => reply({ update: null, failed: true }));
+    return;
+  }
+  if (fromPopup && message.type === 'connect') {
     void (async () => {
       const connection = message.connection;
       if (!connection || !Number.isInteger(connection.port) || connection.port < 1 || connection.port > 65535 || !/^[\w-]{40,100}$/.test(connection.token)) return reply({ ok: false, error: chrome.i18n.getMessage('invalidCode') });
@@ -123,7 +132,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     })().catch(error => reply({ ok: false, error: error.message }));
     return;
   }
-  if (!sender.tab && message.type === 'disconnect') {
+  if (fromPopup && message.type === 'disconnect') {
     void (async () => {
       await polling;
       if (active) {

@@ -23,8 +23,11 @@ const context = await chromium.launchPersistentContext(profile, {
   args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
 });
 const token = randomBytes(32).toString('base64url');
+let release = { tag_name: 'v99.0.0', assets: [{ name: 'arara-browser-99.0.0.zip', state: 'uploaded', browser_download_url: 'https://github.com/arara-ide/arara-browser/releases/download/v99.0.0/arara-browser-99.0.0.zip' }] };
+let releaseStatus = 200, releaseRequests = 0;
 const ide = createServer((request, response) => {
   request.resume();
+  if (request.url === '/release') { releaseRequests++; return response.writeHead(releaseStatus, { 'content-type': 'application/json' }).end(JSON.stringify(release)); }
   if (request.headers.authorization !== `Bearer ${token}`) return response.writeHead(403).end();
   if (request.method !== 'POST' || request.url !== '/poll') return response.writeHead(404).end();
   response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ job: null, cancel: null }));
@@ -34,25 +37,36 @@ try {
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
   const id = new URL(worker.url()).hostname;
   assert.equal(await worker.evaluate(() => chrome.runtime.getManifest().version), manifest.version);
-  let release = { tag_name: 'v99.0.0', assets: [{ name: 'arara-browser-99.0.0.zip', state: 'uploaded', browser_download_url: 'https://github.com/arara-ide/arara-browser/releases/download/v99.0.0/arara-browser-99.0.0.zip' }] };
-  await context.route('https://api.github.com/**', route => route.fulfill({ json: release }));
+  await worker.evaluate(url => { const original = globalThis.fetch; globalThis.fetch = (input, options) => original(String(input).startsWith('https://api.github.com/') ? url : input, options); }, `http://127.0.0.1:${ide.address().port}/release`);
+  await worker.evaluate(async () => { await poll(); await chrome.storage.local.remove('releaseCheck'); });
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(`chrome-extension://${id}/popup.html`);
-  await page.locator('#update:not([hidden])').waitFor();
+  await page.locator('#update:not([hidden])').waitFor().catch(async error => { console.error({ status: await page.locator('#update-status').innerText(), cache: await worker.evaluate(() => chrome.storage.local.get('releaseCheck')), errors, releaseRequests }); throw error; });
   assert.match(await page.locator('#update-status').innerText(), /99\.0\.0/);
   await page.evaluate(() => { chrome.tabs.create = async ({ url }) => { window.downloadUrl = url; }; });
   await page.locator('#update').click();
   assert.equal(await page.evaluate(() => window.downloadUrl), release.assets[0].browser_download_url);
+  const cachedRequests = releaseRequests;
   release = { tag_name: `v${manifest.version}`, assets: [] };
+  await page.reload();
+  await page.locator('#update:not([hidden])').waitFor();
+  assert.equal(releaseRequests, cachedRequests, 'reopening the popup reuses the twelve-hour background cache');
+  const expire = () => worker.evaluate(async () => { const { releaseCheck } = await chrome.storage.local.get('releaseCheck'); await chrome.storage.local.set({ releaseCheck: { ...releaseCheck, checked: Date.now() - 12 * 60 * 60 * 1000, failed: false } }); });
+  await expire();
   await page.reload();
   await page.waitForFunction(() => document.querySelector('#update-status').textContent === chrome.i18n.getMessage('current', chrome.runtime.getManifest().version));
   assert.equal(await page.locator('#update').isVisible(), false);
-  await context.unroute('https://api.github.com/**');
-  await context.route('https://api.github.com/**', route => route.fulfill({ status: 403, body: 'rate limit' }));
+  releaseStatus = 403;
+  await expire();
   await page.reload();
   await page.waitForFunction(() => document.querySelector('#update-status').textContent === chrome.i18n.getMessage('updateFailed', chrome.runtime.getManifest().version));
+  const failedRequests = releaseRequests;
+  await page.reload();
+  await page.waitForFunction(() => document.querySelector('#update-status').textContent === chrome.i18n.getMessage('updateFailed', chrome.runtime.getManifest().version));
+  await worker.evaluate(async () => { for (let i = 0; i < 10; i++) await poll(); });
+  assert.equal(releaseRequests, failedRequests, 'popup reopen and background polling respect the ten-minute failure cooldown');
   assert.equal(await page.locator('#connect').isEnabled(), true);
   const message = key => page.evaluate(name => chrome.i18n.getMessage(name), key);
   assert.equal(await page.locator('#copy, #disconnect, #chatgpt').count(), 0, 'one connection button, no copy or ChatGPT buttons');

@@ -48,7 +48,8 @@ async function checkUpdate() {
   const current = chrome.runtime.getManifest().version;
   q('update-status').textContent = chrome.i18n.getMessage('checking', String(current));
   try {
-    const update = await AraraUpdates.check(current);
+    const { update, failed } = await chrome.runtime.sendMessage({ type: 'releaseCheck' });
+    if (failed && !update) throw new Error('Release check unavailable');
     q('update-status').textContent = update ? chrome.i18n.getMessage('available', String(update.version)) : chrome.i18n.getMessage('current', String(current));
     q('update').hidden = !update;
     if (update) q('update').onclick = () => chrome.tabs.create({ url: update.url });
@@ -75,7 +76,7 @@ function renderOutdated(outdated) {
 }
 async function checkOutdated() {
   const current = chrome.runtime.getManifest().version;
-  const update = await AraraUpdates.freshness(current, chrome.storage.local).catch(() => null);
+  const { update } = await chrome.runtime.sendMessage({ type: 'releaseCheck' }).catch(() => ({ update: null }));
   renderOutdated(update ? { current, latest: update.version, url: update.url, xpi: update.xpi } : null);
 }
 void checkOutdated();
