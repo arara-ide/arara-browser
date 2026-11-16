@@ -21,7 +21,7 @@ Repositório público MIT. Nunca incluir código do agente, prompts internos, cr
 
 A extensão fica em `extension/`; não adicionar dependências de runtime ou scripts remotos. Preservar autenticação em loopback, isolamento das abas e entrega sem reenvio incerto.
 
-Versões em package.json e manifest.json devem coincidir. Execute npm test, npm run build, npm run test:content e npm run test:compatibility. A suíte de navegador usa páginas simuladas; não declarar compatibilidade com a interface real do ChatGPT sem teste manual.
+Toda entrega que altere o comportamento ou runtime da extensão deve incrementar a versão antes de promover `development` para `main`. Mantenha `package.json`, `extension/manifest.json` e as duas versões do pacote raiz em `package-lock.json` alinhados; atualize `RELEASE.md` na mesma mudança. Confira que a tag `v<versão>` ainda não foi publicada: releases existentes são imutáveis e um commit com a mesma versão não distribui a correção. Execute npm test, npm run build, npm run test:content e npm run test:compatibility. A suíte de navegador usa páginas simuladas; não declarar compatibilidade com a interface real do ChatGPT sem teste manual.
 
 O ZIP público usa método STORE, arquivos planos de runtime e somente `_locales/{en,pt_BR,es}/messages.json` como subpastas permitidas; mudanças do formato de distribuição precisam ser coordenadas com o instalador no arara-ai.
 
@@ -36,6 +36,7 @@ Por orientação explícita do usuário em 16/10/2026, este repositório segue a
 - `hotfix/*`: sai de `main` e deve ser incorporada em `main` e `development`.
 - Não publicar releases a partir de branches de desenvolvimento, apagar branches históricas sem verificar seus commits ou reescrever o histórico. Builds de `development` são entregues exclusivamente como Artifacts, conforme autorização do usuário em 16/10/2026.
 - Commit e push continuam dependendo de autorização do usuário. Esta política não altera os fluxos dos repositórios `ac-*`.
+- Quando o usuário autorizar a promoção, publique o commit na `development` e use `pr-ship arara-ide/arara-browser development main` com título e descrição da entrega. Respeite `Security gate`, CodeQL e resolução das revisões; se a tentativa imediata de merge aguardar checks, conclua o PR aberto quando os requisitos passarem. Confira o merge remoto e sincronize a `development` com a `main`, preservando ambas.
 
 ## Encerramento e autoria
 
