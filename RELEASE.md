@@ -1,3 +1,11 @@
+# Arara Browser 0.2.6
+
+Corrige a perda de respostas no Firefox quando o background é suspenso durante uma ação. A execução permanece vinculada ao evento da extensão até terminar, mantendo o polling de presença independente e o fluxo existente no Chrome, Edge e Brave.
+
+Inclui o cache compartilhado de atualizações: verificações válidas duram 12 horas e falhas aguardam 10 minutos antes de uma nova tentativa. Popup e background usam o mesmo resultado.
+
+Versão sincronizada no pacote, manifesto e lockfile. Nenhuma nova permissão ou dependência de runtime.
+
 Extensão do Arara para conectar o seu navegador ao Arara Code: o ChatGPT do navegador vira uma plataforma do chat, e a IA da IDE pode trabalhar nas suas abas quando você menciona **Meu navegador** no chat lateral ou no Arara Bot.
 
 Novidades: o popup ficou mais direto, com um botão só para conectar e desconectar. A IA digita a 2.000 caracteres por minuto e o cursor dela ficou menor. Todo clique da IA passa pelo cursor, inclusive os feitos por script, e ela pode clicar em vários elementos em sequência. Ao ler um elemento fora da tela, a página rola com o cursor acompanhando. A extensão funciona no Chrome, Edge, Brave e Firefox 128 ou superior, com a IA listando, abrindo e fechando abas, navegando, lendo, clicando, preenchendo, rolando, rodando scripts, vendo o console e a rede e tirando print. Versões velhas pedem atualização antes de trabalhar.

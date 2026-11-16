@@ -6,6 +6,9 @@ import { unzipSync } from 'fflate';
 import { expect, it } from 'vitest';
 it('produces a reproducible installable ZIP with checksums and exactly the public runtime assets', () => {
   const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+  const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
+  expect(lock.version).toBe(pkg.version);
+  expect(lock.packages[''].version).toBe(pkg.version);
   const name = `arara-browser-${pkg.version}.zip`;
   execFileSync(process.execPath, ['scripts/build.mjs']);
   const first = readFileSync(`dist/${name}`);
