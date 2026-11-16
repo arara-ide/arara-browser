@@ -1,5 +1,6 @@
 if (typeof importScripts === 'function') importScripts('updates.js', 'agent-tabs.js', 'agent-worker.js');
-let polling, worker, active, browserTab, handed, completed, workTab;
+let polling, worker, active, browserTab, handed, completed, workTab, agentRefusal;
+const firefox = typeof globalThis.browser?.runtime?.getBrowserInfo === 'function';
 async function api(path, data) {
   const { connection } = await chrome.storage.local.get('connection');
   if (!connection) throw new Error(chrome.i18n.getMessage('connectFirst'));
@@ -56,6 +57,7 @@ async function runPoll() {
     const update = await globalThis.AraraUpdates?.freshness(version, chrome.storage.local).catch(() => null);
     await chrome.storage.session.set({ outdated: update ? { current: version, latest: update.version, url: update.url, xpi: update.xpi } : null });
     const refusal = update ? chrome.i18n.getMessage('outdatedRefusal', [version, update.version]) : undefined;
+    agentRefusal = refusal;
     const { job, cancel, disconnected, agent, reload } = await api('/poll', { contexts: Object.keys(await bindings()), version, outdated: update ? { latest: update.version } : null });
     if (reload === true && !active && !disconnected) {
       const { connection } = await chrome.storage.local.get('connection');
@@ -63,7 +65,10 @@ async function runPoll() {
       chrome.runtime.reload();
       return { ok: true };
     }
-    if (agent && !disconnected) void globalThis.AraraAgent?.loop(api, refusal);
+    if (agent && !disconnected) {
+      if (firefox) await chrome.alarms.create('agent', { when: Date.now() });
+      else void globalThis.AraraAgent?.loop(api, refusal);
+    }
     if (completed && !disconnected) {
       await api('/result', completed);
       await clearWork();
@@ -207,7 +212,7 @@ const initialized = (async () => {
   await chrome.alarms.create('poll', { periodInMinutes: 0.5 });
 })();
 void initialized.then(() => poll());
-chrome.alarms.onAlarm.addListener(() => void poll());
+chrome.alarms.onAlarm.addListener(alarm => poll().then(() => alarm.name === 'agent' ? globalThis.AraraAgent?.loop(api, agentRefusal) : undefined));
 chrome.runtime.onInstalled?.addListener(() => void initialized.then(() => poll()));
 chrome.runtime.onStartup?.addListener(() => void initialized.then(() => poll()));
 setInterval(() => void poll(), 1000);

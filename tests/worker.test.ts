@@ -4,7 +4,7 @@ import { runInNewContext } from 'node:vm';
 import { describe, expect, it, vi } from 'vitest';
 const source = readFileSync('extension/background.js', 'utf8');
 
-async function fixture(failReceipt = false, workTabBinding?: { id: number; url: string; contextId?: string }, extra: { update?: { version: string; url: string }; reload?: boolean } = {}) {
+async function fixture(failReceipt = false, workTabBinding?: { id: number; url: string; contextId?: string }, extra: { update?: { version: string; url: string }; reload?: boolean; firefox?: boolean } = {}) {
   const session = new Map<string, unknown>();
   const local = new Map<string, unknown>([['worker', 'worker-1'], ['connection', { port: 12345, token: 'test-token' }]]);
   if (workTabBinding) local.set('workTabBinding', workTabBinding);
@@ -35,11 +35,41 @@ async function fixture(failReceipt = false, workTabBinding?: { id: number; url: 
     alarms: { create: vi.fn(async () => {}), onAlarm: { addListener: vi.fn() } },
   };
   const AraraUpdates = { freshness: async () => extra.update ?? null };
-  runInNewContext(source, { chrome, fetch: request, crypto: webcrypto, AbortSignal, AraraUpdates, setInterval: (fn: () => void) => { tick = fn; } });
+  const agent = { loop: vi.fn(async (..._args: unknown[]) => {}) };
+  const browser = extra.firefox ? { runtime: { getBrowserInfo: vi.fn() } } : undefined;
+  runInNewContext(source, { chrome, browser, fetch: request, crypto: webcrypto, AbortSignal, AraraUpdates, AraraAgent: agent, setInterval: (fn: () => void) => { tick = fn; } });
   if (!extra.update && !extra.reload) await vi.waitFor(() => expect(session.get('active')).toEqual(job));
   const send = (message: unknown, tabId = 7) => new Promise<unknown>(resolve => listener(message, { tab: { id: tabId }, url: 'https://chatgpt.com/' }, resolve));
-  return { chrome, job, send, tick, request, session, local, createTab, updateTab, removeTab: chrome.tabs.remove, sendMessage: chrome.tabs.sendMessage, getTab: chrome.tabs.get, popup: (message: unknown) => new Promise<any>(resolve => listener(message, {}, resolve)) };
+  return { chrome, agent, job, send, tick, request, session, local, createTab, updateTab, removeTab: chrome.tabs.remove, sendMessage: chrome.tabs.sendMessage, getTab: chrome.tabs.get, popup: (message: unknown) => new Promise<any>(resolve => listener(message, {}, resolve)) };
 }
+describe('Firefox background lifetime', () => {
+  it('starts Firefox actions from a browser event and keeps the event pending until the action ends', async () => {
+    const f = await fixture(false, undefined, { firefox: true });
+    await vi.waitFor(() => expect(f.session.get('connectionStatus')).toMatchObject({ ok: true }));
+    f.request.mockResolvedValueOnce(Response.json({ job: null, cancel: null, agent: true }));
+    f.tick();
+    await vi.waitFor(() => expect(f.chrome.alarms.create).toHaveBeenCalledWith('agent', { when: expect.any(Number) }));
+    expect(f.agent.loop).not.toHaveBeenCalled();
+    let finish!: () => void;
+    f.agent.loop.mockReturnValueOnce(new Promise<void>(resolve => { finish = resolve; }));
+    const alarm = f.chrome.alarms.onAlarm.addListener.mock.calls[0][0] as (alarm: { name: string }) => Promise<unknown>;
+    let ended = false;
+    const work = alarm({ name: 'agent' }).then(() => { ended = true; });
+    await vi.waitFor(() => expect(f.agent.loop).toHaveBeenCalledTimes(1));
+    expect(ended).toBe(false);
+    finish();
+    await work;
+    expect(ended).toBe(true);
+  });
+  it('keeps Chromium actions in the existing polling flow', async () => {
+    const f = await fixture();
+    await vi.waitFor(() => expect(f.session.get('connectionStatus')).toMatchObject({ ok: true }));
+    f.request.mockResolvedValueOnce(Response.json({ job: null, cancel: null, agent: true }));
+    f.tick();
+    await vi.waitFor(() => expect(f.agent.loop).toHaveBeenCalledTimes(1));
+    expect(f.chrome.alarms.create.mock.calls.some(([name]) => name === 'agent')).toBe(false);
+  });
+});
 describe('outdated extension and self-update', () => {
   it('serves the popup through the same background release cache and reports cached failures', async () => {
     const f = await fixture();
