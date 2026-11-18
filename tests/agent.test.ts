@@ -2,6 +2,17 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { describe, expect, it, vi } from 'vitest';
 
+describe('page agent field descriptions', () => {
+  it('omits passwords even when a field has no accessible label', () => {
+    const scope = { chrome: { runtime: { id: 'test' } }, document: {} };
+    runInNewContext(readFileSync('extension/agent-dom.js', 'utf8'), scope);
+    const { describe: describeElement } = (scope as typeof scope & { AraraDom: { describe(element: unknown): string } }).AraraDom;
+    const field = { tagName: 'INPUT', value: 'fixture-value', getAttribute: () => null };
+    expect(describeElement({ ...field, type: 'password' })).toMatch(/^uid=u\d+ input\[password\] ""$/);
+    expect(describeElement({ ...field, type: 'text' })).toContain('value="fixture-value"');
+  });
+});
+
 function fixture() {
   const tabs = [
     { id: 1, windowId: 9, active: true, status: 'complete', url: 'https://example.com/', title: 'Example' },

@@ -1,3 +1,7 @@
+# Arara Browser 0.2.8
+
+Oculta os valores dos campos de senha nos resultados de ações e nas leituras estruturadas de páginas.
+
 # Arara Browser 0.2.7
 
 Corrige mensagens de erro exibidas ao usuário ao conectar com código inválido ou quando a IDE está inacessível, evitando textos crus de exceções do navegador, e traduz a chave `documentBusy` no catálogo `pt_BR`.
