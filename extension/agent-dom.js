@@ -28,12 +28,13 @@
     }
     return null;
   }
-  const label = element => clean(element.getAttribute('aria-label') || element.getAttribute('alt') || element.getAttribute('title') || element.getAttribute('placeholder') || element.labels?.[0]?.innerText || element.innerText || element.value).slice(0, 120);
+  const label = (element, value) => clean(element.getAttribute('aria-label') || element.getAttribute('alt') || element.getAttribute('title') || element.getAttribute('placeholder') || element.labels?.[0]?.innerText || element.innerText || value).slice(0, 120);
   const role = element => element.getAttribute('role') || (element.tagName === 'A' ? 'link' : element.tagName === 'INPUT' ? `input[${element.type}]` : element.tagName.toLowerCase());
   function describe(element) {
-    const parts = [`uid=${uidOf(element)}`, role(element), JSON.stringify(label(element))];
+    const value = element.tagName === 'INPUT' && element.type === 'password' ? undefined : element.value;
+    const parts = [`uid=${uidOf(element)}`, role(element), JSON.stringify(label(element, value))];
     if (element.tagName === 'A' && element.getAttribute('href')) parts.push(`href=${element.getAttribute('href').slice(0, 200)}`);
-    if ('value' in element && element.tagName !== 'BUTTON' && element.value) parts.push(`value=${JSON.stringify(String(element.value).slice(0, 200))}`);
+    if (element.tagName !== 'BUTTON' && value) parts.push(`value=${JSON.stringify(String(value).slice(0, 200))}`);
     if (element.checked) parts.push('checked');
     if (element.disabled) parts.push('disabled');
     if (element === document.activeElement) parts.push('focused');
