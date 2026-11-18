@@ -24,12 +24,23 @@ async function disconnect() {
   await action('disconnect'); render({ code: '', connected: false, notice: chrome.i18n.getMessage('disconnectedNotice') });
 }
 async function connect() {
+  let connection;
   try {
-    const connection = JSON.parse(atob(q('code').value.trim().replace(/-/g, '+').replace(/_/g, '/')));
-    if (!Number.isInteger(connection.port) || connection.port < 1 || connection.port > 65535 || !/^[\w-]{40,100}$/.test(connection.token)) throw new Error(chrome.i18n.getMessage('invalidCodeIde'));
+    connection = JSON.parse(atob(q('code').value.trim().replace(/-/g, '+').replace(/_/g, '/')));
+  } catch {
+    render({ connected: false, notice: chrome.i18n.getMessage('invalidCodeIde') });
+    return;
+  }
+  if (!connection || typeof connection !== 'object' || !Number.isInteger(connection.port) || connection.port < 1 || connection.port > 65535 || !/^[\w-]{40,100}$/.test(connection.token)) {
+    render({ connected: false, notice: chrome.i18n.getMessage('invalidCodeIde') });
+    return;
+  }
+  try {
     const result = await chrome.runtime.sendMessage({ type: 'connect', connection });
-    render({ connected: result.ok, notice: result.ok ? chrome.i18n.getMessage('ready') : result.error || chrome.i18n.getMessage('openIde') });
-  } catch (error) { render({ connected: false, notice: error.message }); }
+    render({ connected: result?.ok === true, notice: result?.ok ? chrome.i18n.getMessage('ready') : result?.error || chrome.i18n.getMessage('openIde') });
+  } catch {
+    render({ connected: false, notice: chrome.i18n.getMessage('openIde') });
+  }
 }
 q('connect').onclick = async () => {
   q('connect').disabled = true;

@@ -114,7 +114,7 @@
     "message": "Não foi possível confirmar o fim da resposta. Nenhuma ação executada."
   },
   "documentBusy": {
-    "message": "Document busy"
+    "message": "Documento ocupado"
   },
   "agentIntro": {
     "message": "Para usar, digite @ no chat e escolha Meu navegador."
