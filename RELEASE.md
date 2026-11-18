@@ -1,3 +1,9 @@
+# Arara Browser 0.2.7
+
+Corrige mensagens de erro exibidas ao usuário ao conectar com código inválido ou quando a IDE está inacessível, evitando textos crus de exceções do navegador, e traduz a chave `documentBusy` no catálogo `pt_BR`.
+
+Versão sincronizada no pacote, manifesto e lockfile. Nenhuma nova permissão ou dependência de runtime.
+
 # Arara Browser 0.2.6
 
 Corrige a perda de respostas no Firefox quando o background é suspenso durante uma ação. A execução permanece vinculada ao evento da extensão até terminar, mantendo o polling de presença independente e o fluxo existente no Chrome, Edge e Brave.

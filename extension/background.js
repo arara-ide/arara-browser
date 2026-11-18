@@ -4,10 +4,13 @@ const firefox = typeof globalThis.browser?.runtime?.getBrowserInfo === 'function
 async function api(path, data) {
   const { connection } = await chrome.storage.local.get('connection');
   if (!connection) throw new Error(chrome.i18n.getMessage('connectFirst'));
-  const response = await fetch(`http://127.0.0.1:${connection.port}${path}`, { method: 'POST', headers: { authorization: `Bearer ${connection.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ worker, ...data }), signal: AbortSignal.timeout(12000) });
+  let response;
+  try { response = await fetch(`http://127.0.0.1:${connection.port}${path}`, { method: 'POST', headers: { authorization: `Bearer ${connection.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ worker, ...data }), signal: AbortSignal.timeout(12000) }); }
+  catch { throw new Error(chrome.i18n.getMessage('ideDisconnected')); }
   if (response.status === 403) await chrome.storage.local.remove(['connection']);
   if (!response.ok) throw new Error(chrome.i18n.getMessage('ideDisconnected'));
-  return response.json();
+  try { return await response.json(); }
+  catch { throw new Error(chrome.i18n.getMessage('ideDisconnected')); }
 }
 async function clearWork() {
   active = null; browserTab = null; handed = null; completed = null;

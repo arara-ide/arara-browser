@@ -278,6 +278,10 @@ describe('browser worker delivery', () => {
     const reply = await f.popup({ type: 'connect', connection: { port: 12345, token: 'a'.repeat(43) } });
     expect(reply.ok).toBe(false);
     expect(reply.error).toContain('não está conectada');
+    f.request.mockRejectedValue(new TypeError('Failed to fetch'));
+    const offline = await f.popup({ type: 'connect', connection: { port: 12345, token: 'a'.repeat(43) } });
+    expect(offline.ok).toBe(false);
+    expect(offline.error).toBe('A IDE não está conectada.');
   });
 
 });

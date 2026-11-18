@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 import { expect, it } from 'vitest';
 const catalogs = ['en', 'pt_BR', 'es'].map(locale => JSON.parse(readFileSync(`extension/_locales/${locale}/messages.json`, 'utf8')) as Record<string, { message: string }>);
 it('ships complete native Chrome catalogs with matching substitution parameters', () => {
@@ -27,4 +28,34 @@ it('uses the current My Browser mention in every language', () => {
     expect(messages.some(message => message.includes(label))).toBe(true);
     expect(messages.join(' ')).not.toMatch(/Your browser|Seu navegador|Tu navegador/);
   }
+  expect(catalogs[1].documentBusy.message).toBe('Documento ocupado');
+  expect(catalogs[2].documentBusy.message).toBe('Documento ocupado');
+});
+
+it('shows localized popup errors when pairing code is malformed or runtime messaging fails', async () => {
+  const node = () => ({ value: '', textContent: '', hidden: false, disabled: false, type: 'password', dataset: {} as Record<string, string>, classList: { toggle() {} }, setAttribute() {}, onclick: null as null | (() => Promise<void>) });
+  const elements: Record<string, ReturnType<typeof node>> = Object.fromEntries(['code', 'connection', 'connect', 'status', 'show', 'update-status', 'update', 'sites', 'outdated', 'outdated-body', 'outdated-manual', 'outdated-download'].map(id => [id, node()]));
+  const sendMessage = async (msg: { type: string }) => {
+    if (msg.type === 'releaseCheck') return { update: null, failed: false };
+    throw new Error('Could not establish connection. Receiving end does not exist.');
+  };
+  const chrome = {
+    i18n: { getUILanguage: () => 'pt-BR', getMessage: (key: string) => catalogs[1][key]?.message ?? key },
+    runtime: { sendMessage, getManifest: () => ({ version: '0.2.7' }) },
+    storage: { local: { get: async () => ({}) }, session: { get: async () => ({}) }, onChanged: { addListener() {} } },
+    permissions: { contains: async () => true },
+  };
+  runInNewContext(readFileSync('extension/popup.js', 'utf8'), {
+    document: { documentElement: { lang: '' }, querySelectorAll: () => [], getElementById: (id: string) => elements[id] },
+    navigator: { userAgent: 'Chrome/130' },
+    chrome, atob, btoa,
+  });
+  for (const raw of ['', 'not-base64!', btoa('null'), btoa(JSON.stringify({ port: 70000, token: 'a'.repeat(43) }))]) {
+    elements.code.value = raw;
+    await elements.connect.onclick!();
+    expect(elements.status.textContent).toBe(catalogs[1].invalidCodeIde.message);
+  }
+  elements.code.value = btoa(JSON.stringify({ port: 12345, token: 'a'.repeat(43) }));
+  await elements.connect.onclick!();
+  expect(elements.status.textContent).toBe(catalogs[1].openIde.message);
 });

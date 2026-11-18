@@ -72,6 +72,10 @@ try {
   assert.equal(await page.locator('#copy, #disconnect, #chatgpt').count(), 0, 'one connection button, no copy or ChatGPT buttons');
   assert.equal(await page.locator('#connect').innerText(), await message('connect'));
   assert.equal(await page.locator('.code-field button').count(), 0, 'Show sits below the field');
+  await page.locator('#code').fill('invalid-code');
+  await page.locator('#connect').click();
+  await page.waitForFunction(() => document.querySelector('#status').textContent === chrome.i18n.getMessage('invalidCodeIde') && !document.querySelector('#connect').disabled);
+  await page.locator('#code').fill('');
   await worker.evaluate(connection => chrome.storage.local.set({ connection }), { port: ide.address().port, token });
   await page.waitForFunction(text => document.querySelector('#connect').textContent === text, await message('disconnect'));
   const connectedAt = await worker.evaluate(async () => (await chrome.storage.session.get('connectionStatus')).connectionStatus.time);
