@@ -11,14 +11,8 @@
   "disconnected": {
     "message": "Disconnected"
   },
-  "headline": {
-    "message": "Link My Browser to Arara Code"
-  },
-  "intro": {
-    "message": "The Arara Code AI works in your tabs, and ChatGPT becomes a chat in the IDE."
-  },
   "instructions": {
-    "message": "Copy the code in Arara settings › Arara Browser and paste it here."
+    "message": "Paste the code from Arara Code › Settings › Arara Browser."
   },
   "codeLabel": {
     "message": "Connection code"
@@ -35,38 +29,20 @@
   "disconnect": {
     "message": "Disconnect"
   },
-  "permissions": {
-    "message": "Keep the browser open while the AI works."
-  },
-  "update": {
-    "message": "Update"
-  },
-  "updateInstructions": {
-    "message": "To update, click Update in Arara settings › Arara Browser."
-  },
-  "disconnectedNotice": {
-    "message": "Disconnected."
-  },
   "invalidCodeIde": {
     "message": "Invalid code. Copy it again in Arara Code."
   },
-  "ready": {
-    "message": "Connected. Go back to Arara Code."
-  },
   "openIde": {
     "message": "Open Arara Code and copy the code again."
-  },
-  "checking": {
-    "message": "Version $1 · Checking for updates…"
   },
   "available": {
     "message": "Version $1 is available."
   },
   "current": {
-    "message": "Version $1 · Up to date."
+    "message": "Version $1"
   },
   "updateFailed": {
-    "message": "Version $1 · Could not check. Reopen to try again."
+    "message": "Version $1 · Update check failed"
   },
   "connectFirst": {
     "message": "Connect the IDE first."
@@ -116,9 +92,6 @@
   "documentBusy": {
     "message": "Document busy"
   },
-  "agentIntro": {
-    "message": "To use it, type @ in the chat and choose My Browser."
-  },
   "allowSites": {
     "message": "Allow all sites"
   },
@@ -130,21 +103,6 @@
   },
   "agentWorking": {
     "message": "Arara AI is using this browser"
-  },
-  "outdatedTitle": {
-    "message": "Update Arara Browser"
-  },
-  "outdatedBody": {
-    "message": "You have version $1 and version $2 is out. Until you update, the AI and ChatGPT can't use this browser."
-  },
-  "outdatedEasy": {
-    "message": "Easiest way: in Arara Code, open Settings › Arara Browser and click Update. The extension restarts by itself."
-  },
-  "outdatedManual": {
-    "message": "Or do it by hand: download the package, unzip it on top of the extension folder (replace the files) and click Reload on the extensions page."
-  },
-  "outdatedManualFirefox": {
-    "message": "Firefox: download the new file, open about:debugging, go to This Firefox, click Load Temporary Add-on and choose it."
   },
   "outdatedDownload": {
     "message": "Download update"

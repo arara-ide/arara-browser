@@ -1,3 +1,13 @@
+# Arara Browser 0.3.1
+
+Simplifica o popup de conexão e reúne as atualizações em um único aviso.
+
+# Arara Browser 0.2.9
+
+Adiciona a ação `export_session` para exportar cookies e `localStorage` de um site do navegador do usuário para o navegador embutido do Arara Code.
+
+Adiciona a permissão `cookies` no manifesto. Versão sincronizada no pacote, manifesto e lockfile. Nenhuma nova dependência de runtime.
+
 # Arara Browser 0.2.8
 
 Oculta os valores dos campos de senha nos resultados de ações e nas leituras estruturadas de páginas.

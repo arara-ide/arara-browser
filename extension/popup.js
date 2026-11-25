@@ -5,8 +5,15 @@ const encode = value => btoa(JSON.stringify(value)).replace(/\+/g, '-').replace(
 function render({ code, connected, notice }) {
   if (code !== undefined) q('code').value = code;
   if (connected !== undefined) {
-    q('connection').textContent = connected ? chrome.i18n.getMessage('connected') : chrome.i18n.getMessage('disconnected');
-    q('connection').dataset.connected = String(connected);
+    const state = String(connected);
+    if (q('connection').dataset.connected !== state) {
+      q('connection').textContent = chrome.i18n.getMessage(connected ? 'connected' : 'disconnected');
+      q('connection').dataset.connected = state;
+      q('status').textContent = '';
+    }
+    q('pairing').hidden = connected;
+    q('show').hidden = connected;
+    if (connected) setCodeVisibility(false);
     q('connect').textContent = chrome.i18n.getMessage(connected ? 'disconnect' : 'connect');
     q('connect').classList.toggle('secondary', connected);
     q('connect').dataset.connected = String(connected);
@@ -14,14 +21,13 @@ function render({ code, connected, notice }) {
   if (notice !== undefined) q('status').textContent = notice;
 }
 const action = type => chrome.runtime.sendMessage({ type });
-q('show').onclick = () => {
-  const show = q('code').type === 'password';
+function setCodeVisibility(show) {
   q('code').type = show ? 'text' : 'password';
   q('show').textContent = show ? chrome.i18n.getMessage('hide') : chrome.i18n.getMessage('show');
-  q('show').setAttribute('aria-pressed', String(show));
-};
+}
+q('show').onclick = () => setCodeVisibility(q('code').type === 'password');
 async function disconnect() {
-  await action('disconnect'); render({ code: '', connected: false, notice: chrome.i18n.getMessage('disconnectedNotice') });
+  await action('disconnect'); render({ code: '', connected: false, notice: '' });
 }
 async function connect() {
   let connection;
@@ -37,7 +43,7 @@ async function connect() {
   }
   try {
     const result = await chrome.runtime.sendMessage({ type: 'connect', connection });
-    render({ connected: result?.ok === true, notice: result?.ok ? chrome.i18n.getMessage('ready') : result?.error || chrome.i18n.getMessage('openIde') });
+    render({ connected: result?.ok === true, notice: result?.ok ? '' : result?.error || chrome.i18n.getMessage('openIde') });
   } catch {
     render({ connected: false, notice: chrome.i18n.getMessage('openIde') });
   }
@@ -47,28 +53,29 @@ q('connect').onclick = async () => {
   try { await (q('connect').dataset.connected === 'true' ? disconnect() : connect()); }
   finally { q('connect').disabled = false; }
 };
-  Promise.all([chrome.storage.local.get('connection'), chrome.storage.session.get('connectionStatus')]).then(([{ connection }, { connectionStatus }]) => {
-    render({ code: connection ? encode(connection) : '', connected: connectionStatus?.ok === true && Date.now() - connectionStatus.time < 45000 });
-  });
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes.connection) render({ code: changes.connection.newValue ? encode(changes.connection.newValue) : '' });
-    if (area === 'session' && changes.connectionStatus) render({ connected: changes.connectionStatus.newValue?.ok === true });
-  });
+Promise.all([chrome.storage.local.get('connection'), chrome.storage.session.get('connectionStatus')]).then(([{ connection }, { connectionStatus }]) => {
+  render({ code: connection ? encode(connection) : '', connected: connectionStatus?.ok === true && Date.now() - connectionStatus.time < 45000 });
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.connection) render({ code: changes.connection.newValue ? encode(changes.connection.newValue) : '' });
+  if (area === 'session' && changes.connectionStatus) render({ connected: changes.connectionStatus.newValue?.ok === true });
+});
 
-async function checkUpdate() {
-  const current = chrome.runtime.getManifest().version;
-  q('update-status').textContent = chrome.i18n.getMessage('checking', String(current));
-  try {
-    const { update, failed } = await chrome.runtime.sendMessage({ type: 'releaseCheck' });
-    if (failed && !update) throw new Error('Release check unavailable');
-    q('update-status').textContent = update ? chrome.i18n.getMessage('available', String(update.version)) : chrome.i18n.getMessage('current', String(current));
-    q('update').hidden = !update;
-    if (update) q('update').onclick = () => chrome.tabs.create({ url: update.url });
-  } catch {
-    q('update-status').textContent = chrome.i18n.getMessage('updateFailed', String(current));
-  }
+const current = chrome.runtime.getManifest().version;
+const firefox = /Firefox\//.test(navigator.userAgent);
+function renderUpdate({ update, failed }) {
+  const status = update ? chrome.i18n.getMessage('available', update.version) : chrome.i18n.getMessage(failed ? 'updateFailed' : 'current', current);
+  if (q('update-status').textContent !== status) q('update-status').textContent = status;
+  q('update').hidden = !update;
+  q('update').onclick = update ? () => chrome.tabs.create({ url: (firefox && update.xpi) || update.url }) : null;
 }
-void checkUpdate();
+renderUpdate({});
+void action('releaseCheck').then(renderUpdate).catch(() => renderUpdate({ failed: true }));
+chrome.storage.onChanged.addListener((changes, area) => {
+  const release = changes.releaseCheck?.newValue;
+  if (area === 'local' && release?.current === current) renderUpdate(release);
+});
+
 const allSites = { origins: ['<all_urls>'] };
 async function renderSites() { q('sites').hidden = await chrome.permissions.contains(allSites); }
 q('sites').onclick = async () => {
@@ -77,18 +84,3 @@ q('sites').onclick = async () => {
   await renderSites();
 };
 void renderSites();
-const firefox = /Firefox\//.test(navigator.userAgent);
-function renderOutdated(outdated) {
-  q('outdated').hidden = !outdated;
-  if (!outdated) return;
-  q('outdated-body').textContent = chrome.i18n.getMessage('outdatedBody', [outdated.current, outdated.latest]);
-  q('outdated-manual').textContent = chrome.i18n.getMessage(firefox ? 'outdatedManualFirefox' : 'outdatedManual');
-  q('outdated-download').onclick = () => chrome.tabs.create({ url: (firefox && outdated.xpi) || outdated.url });
-}
-async function checkOutdated() {
-  const current = chrome.runtime.getManifest().version;
-  const { update } = await chrome.runtime.sendMessage({ type: 'releaseCheck' }).catch(() => ({ update: null }));
-  renderOutdated(update ? { current, latest: update.version, url: update.url, xpi: update.xpi } : null);
-}
-void checkOutdated();
-chrome.storage.onChanged.addListener((changes, area) => { if (area === 'local' && changes.releaseCheck) void checkOutdated(); });

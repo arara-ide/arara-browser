@@ -11,14 +11,8 @@
   "disconnected": {
     "message": "Desconectado"
   },
-  "headline": {
-    "message": "Conecte Meu navegador ao Arara Code"
-  },
-  "intro": {
-    "message": "A IA do Arara Code trabalha nas suas abas, e o ChatGPT vira um chat na IDE."
-  },
   "instructions": {
-    "message": "Copie o código em Configurações do Arara › Arara Browser e cole aqui."
+    "message": "Cole o código do Arara Code › Configurações › Arara Browser."
   },
   "codeLabel": {
     "message": "Código de conexão"
@@ -35,38 +29,20 @@
   "disconnect": {
     "message": "Desconectar"
   },
-  "permissions": {
-    "message": "Deixe o navegador aberto enquanto a IA trabalha."
-  },
-  "update": {
-    "message": "Atualizar"
-  },
-  "updateInstructions": {
-    "message": "Para atualizar, clique em Atualizar em Configurações do Arara › Arara Browser."
-  },
-  "disconnectedNotice": {
-    "message": "Desconectado."
-  },
   "invalidCodeIde": {
     "message": "Código inválido. Copie de novo no Arara Code."
   },
-  "ready": {
-    "message": "Conectado. Volte ao Arara Code."
-  },
   "openIde": {
     "message": "Abra o Arara Code e copie o código de novo."
-  },
-  "checking": {
-    "message": "Versão $1 · Verificando atualização…"
   },
   "available": {
     "message": "Versão $1 disponível."
   },
   "current": {
-    "message": "Versão $1 · Atualizada."
+    "message": "Versão $1"
   },
   "updateFailed": {
-    "message": "Versão $1 · Não foi possível verificar. Abra novamente para tentar."
+    "message": "Versão $1 · Falha ao verificar atualização"
   },
   "connectFirst": {
     "message": "Conecte a IDE primeiro."
@@ -116,9 +92,6 @@
   "documentBusy": {
     "message": "Documento ocupado"
   },
-  "agentIntro": {
-    "message": "Para usar, digite @ no chat e escolha Meu navegador."
-  },
   "allowSites": {
     "message": "Permitir todos os sites"
   },
@@ -130,21 +103,6 @@
   },
   "agentWorking": {
     "message": "A IA do Arara está usando este navegador"
-  },
-  "outdatedTitle": {
-    "message": "Atualize o Arara Browser"
-  },
-  "outdatedBody": {
-    "message": "Você está na versão $1 e já saiu a $2. Até atualizar, a IA e o ChatGPT não usam este navegador."
-  },
-  "outdatedEasy": {
-    "message": "Jeito mais fácil: no Arara Code, abra Configurações › Arara Browser e clique em Atualizar. A extensão reinicia sozinha."
-  },
-  "outdatedManual": {
-    "message": "Ou faça na mão: baixe o pacote, descompacte por cima da pasta da extensão (substituindo os arquivos) e clique em Recarregar na página de extensões."
-  },
-  "outdatedManualFirefox": {
-    "message": "Firefox: baixe o arquivo novo, abra about:debugging, vá em Este Firefox, clique em Carregar extensão temporária e escolha o arquivo."
   },
   "outdatedDownload": {
     "message": "Baixar atualização"

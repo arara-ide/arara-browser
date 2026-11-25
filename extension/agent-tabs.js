@@ -3,6 +3,41 @@
   let cursor = { active: false }, selected;
   const DEVICES = { desktop: { width: 1366, height: 768 }, mobile: { width: 375, height: 667 } };
   const pageAllowed = url => /^(?:https?|file):/.test(url ?? '');
+  const httpUrl = value => {
+    if (typeof value !== 'string' || !/^https?:\/\//i.test(value)) return null;
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed : null;
+    } catch { return null; }
+  };
+  const mapCookie = cookie => {
+    const mapped = {
+      name: cookie.name,
+      value: cookie.value,
+      domain: cookie.domain,
+      path: cookie.path,
+      secure: Boolean(cookie.secure),
+      httpOnly: Boolean(cookie.httpOnly),
+      sameSite: cookie.sameSite,
+      hostOnly: Boolean(cookie.hostOnly),
+      session: Boolean(cookie.session),
+    };
+    if (typeof cookie.expirationDate === 'number') mapped.expirationDate = cookie.expirationDate;
+    return mapped;
+  };
+  const mergeCookies = lists => {
+    const seen = new Set();
+    const cookies = [];
+    for (const list of lists) {
+      for (const cookie of list) {
+        const key = JSON.stringify([cookie.name, cookie.domain, cookie.path]);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        cookies.push(mapCookie(cookie));
+      }
+    }
+    return cookies;
+  };
   const zoomOf = tabId => Promise.resolve().then(() => chrome.tabs.getZoom?.(tabId)).then(zoom => (Number(zoom) > 0 ? Number(zoom) : 1)).catch(() => 1);
   const stateFor = async tabId => ({ ...cursor, here: tabId === cursor.tabId, zoom: await zoomOf(tabId) });
   async function broadcast() {
@@ -125,8 +160,36 @@
     if (reply.error) throw new Error(reply.error);
     return reply.text;
   }
+  async function readCookies(url, hostname) {
+    const queries = [{ url }, { domain: hostname }];
+    const settled = await Promise.allSettled(queries.map(query => Promise.resolve().then(() => chrome.cookies.getAll(query))));
+    if (settled.every(entry => entry.status === 'rejected')) throw new Error('export_session could not read cookies.');
+    return mergeCookies(settled.map(entry => (entry.status === 'fulfilled' && Array.isArray(entry.value) ? entry.value : [])));
+  }
+  async function readLocalStorage(origin) {
+    const tabs = await chrome.tabs.query({}).catch(() => []);
+    const candidates = tabs
+      .filter(tab => typeof tab?.id === 'number' && !tab.discarded && pageAllowed(tab.url) && httpUrl(tab.url)?.origin === origin)
+      .sort((a, b) => Number(Boolean(b.active)) - Number(Boolean(a.active)));
+    for (const tab of candidates) {
+      try {
+        const results = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: () => Object.fromEntries(Object.entries(localStorage)) });
+        const entry = results?.[0];
+        if (entry && !entry.error && entry.result && typeof entry.result === 'object' && !Array.isArray(entry.result)) return entry.result;
+      } catch {}
+    }
+    return null;
+  }
+  async function exportSession(args) {
+    const url = typeof args?.url === 'string' ? args.url : '';
+    const parsed = httpUrl(url);
+    if (!parsed) throw new Error('export_session needs an http(s) url.');
+    const cookies = await readCookies(url, parsed.hostname);
+    const localStorage = await readLocalStorage(parsed.origin);
+    return JSON.stringify({ format: 'arara-session/1', url, origin: parsed.origin, cookies, localStorage });
+  }
   chrome.tabs.onRemoved.addListener(id => { if (id === selected) selected = undefined; });
   chrome.tabs.onActivated.addListener(() => { if (cursor.active) void broadcast(); });
   chrome.tabs.onZoomChange?.addListener(() => { if (cursor.active) void broadcast(); });
-  globalThis.AraraTabs = { current, setCursor, hello, listPages, navigate, newPage, selectPage, closePage, screenshot, evaluate, device, inPage, get selected() { return selected; } };
+  globalThis.AraraTabs = { current, setCursor, hello, listPages, navigate, newPage, selectPage, closePage, screenshot, evaluate, device, inPage, exportSession, get selected() { return selected; } };
 })();

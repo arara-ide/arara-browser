@@ -11,6 +11,7 @@
     take_screenshot: () => tabs.screenshot(),
     evaluate_script: args => tabs.evaluate(args),
     set_device: args => tabs.device(args),
+    export_session: args => tabs.exportSession(args),
   };
   async function execute(command) {
     const action = String(command?.action ?? ''), args = command?.args && typeof command.args === 'object' ? command.args : {};

@@ -22,11 +22,10 @@ it('resolves every static popup and runtime reference from the native catalogs',
   for (const ref of readFileSync('extension/popup.html', 'utf8').matchAll(/data-i18n="([^"]+)"/g)) expect(catalogs[0][ref[1]], ref[1]).toBeDefined();
 });
 
-it('uses the current My Browser mention in every language', () => {
-  for (const [index, label] of ['My Browser', 'Meu navegador', 'Mi navegador'].entries()) {
-    const messages = Object.values(catalogs[index]).map(entry => entry.message);
-    expect(messages.some(message => message.includes(label))).toBe(true);
-    expect(messages.join(' ')).not.toMatch(/Your browser|Seu navegador|Tu navegador/);
+it('includes the Arara settings path and a short version label in each locale', () => {
+  for (const [index, settings] of ['Settings', 'Configurações', 'Configuración'].entries()) {
+    expect(catalogs[index].instructions.message).toContain(`Arara Code › ${settings} › Arara Browser`);
+    expect(catalogs[index].current.message).toMatch(/^\S+ \$1$/);
   }
   expect(catalogs[1].documentBusy.message).toBe('Documento ocupado');
   expect(catalogs[2].documentBusy.message).toBe('Documento ocupado');
@@ -34,22 +33,30 @@ it('uses the current My Browser mention in every language', () => {
 
 it('shows localized popup errors when pairing code is malformed or runtime messaging fails', async () => {
   const node = () => ({ value: '', textContent: '', hidden: false, disabled: false, type: 'password', dataset: {} as Record<string, string>, classList: { toggle() {} }, setAttribute() {}, onclick: null as null | (() => Promise<void>) });
-  const elements: Record<string, ReturnType<typeof node>> = Object.fromEntries(['code', 'connection', 'connect', 'status', 'show', 'update-status', 'update', 'sites', 'outdated', 'outdated-body', 'outdated-manual', 'outdated-download'].map(id => [id, node()]));
+  const elements: Record<string, ReturnType<typeof node>> = Object.fromEntries(['code', 'connection', 'connect', 'status', 'show', 'update-status', 'update', 'sites', 'pairing'].map(id => [id, node()]));
+  const update = { version: '0.3.1', url: 'https://example.test/extension.zip', xpi: 'https://example.test/extension.xpi' };
+  const downloads: string[] = [];
   const sendMessage = async (msg: { type: string }) => {
-    if (msg.type === 'releaseCheck') return { update: null, failed: false };
+    if (msg.type === 'releaseCheck') return { update, failed: false };
     throw new Error('Could not establish connection. Receiving end does not exist.');
   };
   const chrome = {
     i18n: { getUILanguage: () => 'pt-BR', getMessage: (key: string) => catalogs[1][key]?.message ?? key },
     runtime: { sendMessage, getManifest: () => ({ version: '0.2.7' }) },
     storage: { local: { get: async () => ({}) }, session: { get: async () => ({}) }, onChanged: { addListener() {} } },
+    tabs: { create: async ({ url }: { url: string }) => { downloads.push(url); } },
     permissions: { contains: async () => true },
   };
   runInNewContext(readFileSync('extension/popup.js', 'utf8'), {
     document: { documentElement: { lang: '' }, querySelectorAll: () => [], getElementById: (id: string) => elements[id] },
-    navigator: { userAgent: 'Chrome/130' },
+    navigator: { userAgent: 'Firefox/130' },
     chrome, atob, btoa,
   });
+  await Promise.resolve();
+  expect(elements.update.hidden).toBe(false);
+  await elements.update.onclick!();
+  expect(downloads).toEqual([update.xpi]);
+
   for (const raw of ['', 'not-base64!', btoa('null'), btoa(JSON.stringify({ port: 70000, token: 'a'.repeat(43) }))]) {
     elements.code.value = raw;
     await elements.connect.onclick!();
