@@ -1,10 +1,12 @@
 (() => {
   if (globalThis.AraraCursor && globalThis.__araraRuntime === chrome.runtime?.id) return;
-  for (const stale of document.querySelectorAll('arara-cursor')) stale.remove();
+  for (const stale of document.querySelectorAll('arara-cursor, arara-cursor-status')) stale.remove();
   const SIZE = 22, TIP = { x: SIZE * 4 / 24, y: SIZE * 2 / 24 };
   let host, pointer, badge, frame = 0, motion, finish, advance, externalClock = false, scale = 1, pos = { x: 48, y: 48 }, target = { ...pos };
+  let announcementHost, announcement, announcementTimer, active = false;
   const ARROW = `<svg width="${SIZE}" height="${SIZE}" viewBox="0 0 24 24"><path d="M4 2l15 9-7 1.6L8.6 20z" fill="#fff" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
-  const still = () => !externalClock && document.hidden || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+  const reducedMotion = () => globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+  const still = () => !externalClock && document.hidden || reducedMotion();
   const ease = t => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
   const pageZoom = () => Number.parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
   const sizeFor = (browserZoom = 1) => 1 / (Number(browserZoom) > 0 ? Number(browserZoom) : 1);
@@ -12,11 +14,29 @@
     if (host?.isConnected) return;
     host = document.createElement('arara-cursor');
     const root = host.attachShadow({ mode: 'closed' });
-    root.innerHTML = `<style>:host{all:initial;position:fixed;inset:0;pointer-events:none;z-index:2147483647}#p{position:fixed;left:0;top:0;width:${SIZE}px;height:${SIZE}px;will-change:transform;transform-origin:${TIP.x}px ${TIP.y}px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}#p svg{display:block;transition:transform .12s ease-out;transform-origin:${TIP.x}px ${TIP.y}px}#p.click svg{transform:scale(.8)}#b{position:fixed;left:12px;bottom:12px;transform-origin:0 100%;font:13px system-ui,sans-serif;background:#111;color:#fff;border-radius:8px;padding:6px 10px;opacity:.88}#b:empty{display:none}</style><div id="p">${ARROW}</div><div id="b"></div>`;
+    root.innerHTML = `<style>:host{all:initial;position:fixed;inset:0;pointer-events:none;z-index:2147483647}#p{position:fixed;left:0;top:0;width:${SIZE}px;height:${SIZE}px;will-change:transform;transform-origin:${TIP.x}px ${TIP.y}px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}#p svg{display:block;transform-origin:${TIP.x}px ${TIP.y}px}@media(prefers-reduced-motion:no-preference){#p svg{transition:transform .12s ease-out}#p.click svg{transform:scale(.8)}}#b{position:fixed;left:12px;bottom:12px;transform-origin:0 100%;font:13px system-ui,sans-serif;background:#111;color:#fff;border-radius:8px;padding:6px 10px;opacity:.88}#b:empty{display:none}</style><div id="p" aria-hidden="true">${ARROW}</div><div id="b" aria-hidden="true"></div>`;
     pointer = root.getElementById('p'); badge = root.getElementById('b');
     document.documentElement.append(host);
     resize();
     place(pos);
+  }
+  function announceActivity(nextActive) {
+    const i18n = globalThis.chrome?.i18n;
+    if (!i18n?.getMessage || nextActive === active) return;
+    active = nextActive;
+    if (!announcementHost?.isConnected) {
+      announcementHost = document.createElement('arara-cursor-status');
+      announcementHost.lang = i18n.getMessage('uiLanguage');
+      const root = announcementHost.attachShadow({ mode: 'closed' });
+      root.innerHTML = '<style>:host{all:initial;position:fixed;inset-block-start:0;inset-inline-start:0;pointer-events:none}#announcement{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}</style><span id="announcement" role="status" aria-live="polite" aria-atomic="true"></span>';
+      announcement = root.getElementById('announcement');
+      (document.body ?? document.documentElement).append(announcementHost);
+    }
+    clearTimeout(announcementTimer);
+    const text = i18n.getMessage(nextActive ? 'agentWorking' : 'agentFinished');
+    announcementTimer = setTimeout(() => {
+      announcement.textContent = text;
+    }, 50);
   }
   function resize(browserZoom) {
     if (browserZoom !== undefined) scale = sizeFor(browserZoom);
@@ -72,6 +92,7 @@
     });
   }
   function render(next) {
+    announceActivity(next?.active === true);
     if (!next?.active) { stop(); host?.remove(); host = undefined; return; }
     externalClock = next.externalClock === true;
     const fresh = !host?.isConnected;
@@ -82,11 +103,12 @@
   }
   async function press() {
     mount();
+    if (reducedMotion()) return;
     pointer.classList.add('click');
     await new Promise(resolve => setTimeout(resolve, 140));
     pointer.classList.remove('click');
   }
   const DRIFT_CHANCE = 0.7, DRIFT_MIN_MS = 2000, DRIFT_MAX_MS = 5000;
   const driftDelay = (random = Math.random) => random() < DRIFT_CHANCE ? DRIFT_MIN_MS + random() * (DRIFT_MAX_MS - DRIFT_MIN_MS) : null;
-  globalThis.AraraCursor = { render, moveTo, chase, press, tick: () => advance?.(performance.now()), durationFor, driftDelay, sizeFor, SIZE, get visible() { return !!host?.isConnected; }, get position() { return { ...pos }; }, owns: element => !!host && (element === host || host.contains(element)) };
+  globalThis.AraraCursor = { render, moveTo, chase, press, tick: () => advance?.(performance.now()), durationFor, driftDelay, sizeFor, SIZE, get visible() { return !!host?.isConnected; }, get position() { return { ...pos }; }, owns: element => Boolean(element && (element === announcementHost || host?.contains(element))) };
 })();

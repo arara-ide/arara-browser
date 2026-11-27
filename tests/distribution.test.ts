@@ -7,6 +7,7 @@ import { expect, it } from 'vitest';
 it('produces a reproducible installable ZIP with checksums and exactly the public runtime assets', () => {
   const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
   const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
+  expect(readFileSync('RELEASE.md', 'utf8').split('\n')[0]).toBe(`# Arara Browser ${pkg.version}`);
   expect(lock.version).toBe(pkg.version);
   expect(lock.packages[''].version).toBe(pkg.version);
   const name = `arara-browser-${pkg.version}.zip`;

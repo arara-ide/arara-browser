@@ -1,16 +1,20 @@
 if (typeof importScripts === 'function') importScripts('updates.js', 'agent-tabs.js', 'agent-worker.js');
 let polling, worker, active, browserTab, handed, completed, workTab, agentRefusal;
 const firefox = typeof globalThis.browser?.runtime?.getBrowserInfo === 'function';
+const connectionError = (reason, message = reason) => Object.assign(new Error(chrome.i18n.getMessage(message)), { reason });
 async function api(path, data) {
   const { connection } = await chrome.storage.local.get('connection');
   if (!connection) throw new Error(chrome.i18n.getMessage('connectFirst'));
   let response;
   try { response = await fetch(`http://127.0.0.1:${connection.port}${path}`, { method: 'POST', headers: { authorization: `Bearer ${connection.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ worker, ...data }), signal: AbortSignal.timeout(12000) }); }
-  catch { throw new Error(chrome.i18n.getMessage('ideDisconnected')); }
-  if (response.status === 403) await chrome.storage.local.remove(['connection']);
-  if (!response.ok) throw new Error(chrome.i18n.getMessage('ideDisconnected'));
+  catch { throw connectionError('ideDisconnected'); }
+  if (response.status === 403) {
+    await chrome.storage.local.remove(['connection']);
+    throw connectionError('expiredCode', 'ideDisconnected');
+  }
+  if (!response.ok) throw connectionError('ideUnexpectedResponse', 'ideDisconnected');
   try { return await response.json(); }
-  catch { throw new Error(chrome.i18n.getMessage('ideDisconnected')); }
+  catch { throw connectionError('ideUnexpectedResponse', 'ideDisconnected'); }
 }
 async function clearWork() {
   active = null; browserTab = null; handed = null; completed = null;
@@ -84,7 +88,7 @@ async function runPoll() {
         await chrome.tabs.sendMessage(tabId, { type: 'cancel', id: cancel }).catch(() => {});
       }
     }
-    if (disconnected) { await clearWork(); await chrome.storage.local.remove(['connection']); throw new Error(chrome.i18n.getMessage('disconnectedByIde')); }
+    if (disconnected) { await clearWork(); await chrome.storage.local.remove(['connection']); throw connectionError('disconnectedByIde'); }
     if (job && refusal) await api('/result', { id: job.id, result: { error: refusal } });
     else if (job && active) await api('/result', { id: job.id, result: { error: chrome.i18n.getMessage('busy') } });
     if (job && !active && !refusal) {
@@ -113,8 +117,9 @@ async function runPoll() {
     await chrome.storage.session.set({ connectionStatus: { ok: true, time: Date.now() } });
     return { ok: true };
   } catch (error) {
-    await chrome.storage.session.set({ connectionStatus: { ok: false, time: Date.now() } });
-    return { ok: false, error: error.message };
+    const reason = error.reason;
+    await chrome.storage.session.set({ connectionStatus: { ok: false, time: Date.now(), ...(reason && { reason }) } });
+    return { ok: false, error: error.message, ...(reason && { reason }) };
   }
 }
 chrome.runtime.onMessage.addListener((message, sender, reply) => {
@@ -131,10 +136,10 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   if (fromPopup && message.type === 'connect') {
     void (async () => {
       const connection = message.connection;
-      if (!connection || !Number.isInteger(connection.port) || connection.port < 1 || connection.port > 65535 || !/^[\w-]{40,100}$/.test(connection.token)) return reply({ ok: false, error: chrome.i18n.getMessage('invalidCode') });
+      if (!connection || !Number.isInteger(connection.port) || connection.port < 1 || connection.port > 65535 || !/^[\w-]{40,100}$/.test(connection.token)) return reply({ ok: false, reason: 'invalidCode', error: chrome.i18n.getMessage('invalidCode') });
       await polling;
       const previous = (await chrome.storage.local.get('connection')).connection;
-      if (active && (previous?.port !== connection.port || previous?.token !== connection.token)) return reply({ ok: false, error: chrome.i18n.getMessage('stopFirst') });
+      if (active && (previous?.port !== connection.port || previous?.token !== connection.token)) return reply({ ok: false, reason: 'stopFirst', error: chrome.i18n.getMessage('stopFirst') });
       await chrome.storage.local.set({ connection });
       reply(await poll());
     })().catch(error => reply({ ok: false, error: error.message }));

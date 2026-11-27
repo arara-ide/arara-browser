@@ -3,33 +3,49 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Arara Browser</title>
+  <title data-i18n="extensionName">Arara Browser</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <main>
-    <header>
-      <img src="arara.svg" alt="" width="32" height="32">
-      <h1>Arara Browser</h1>
-      <span id="connection" role="status" data-i18n="disconnected"></span>
+    <header class="brand">
+      <img src="arara.svg" alt="" width="28" height="28">
+      <h1 data-i18n="extensionName"></h1>
     </header>
-    <div id="pairing">
-      <p id="instructions" data-i18n="instructions"></p>
-      <label for="code" data-i18n="codeLabel"></label>
-      <div class="code-field">
-        <input id="code" type="password" autocomplete="off" spellcheck="false" aria-describedby="instructions">
+    <form id="connection-form" method="post">
+      <div class="section-heading">
+        <h2 data-i18n="connectionLabel"></h2>
+        <p id="connection" role="status" data-i18n="checkingConnection"></p>
       </div>
-    </div>
-    <div class="actions">
-      <button id="connect" data-connected="false" data-i18n="connect"></button>
-      <button id="show" class="secondary" aria-controls="code" data-i18n="show"></button>
-      <button id="sites" class="secondary" hidden data-i18n="allowSites"></button>
-    </div>
-    <p id="status" role="status"></p>
-    <footer>
-      <small id="update-status" role="status"></small>
-      <button id="update" class="secondary" hidden data-i18n="outdatedDownload"></button>
-    </footer>
+      <div id="pairing">
+        <label for="code" data-i18n="codeLabel"></label>
+        <p id="instructions" data-i18n="instructions"></p>
+        <div class="code-field">
+          <input id="code" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="go" aria-describedby="instructions status">
+        </div>
+      </div>
+      <p id="disconnect-note" hidden data-i18n="disconnectNote"></p>
+      <div class="actions">
+        <button id="connect" type="submit" disabled data-i18n="connect"></button>
+        <button id="show" type="button" class="secondary" aria-controls="code" data-i18n="show"></button>
+      </div>
+      <p id="status" class="feedback" role="status"></p>
+    </form>
+    <section id="update-panel">
+      <p id="update-status" role="status" tabindex="-1"></p>
+      <p id="update-help" hidden></p>
+      <button id="update" type="button" hidden data-i18n="outdatedDownload"></button>
+      <p id="update-result" class="feedback" role="status"></p>
+    </section>
+    <section id="sites-panel">
+      <div class="section-heading">
+        <h2 data-i18n="siteAccess"></h2>
+        <p id="sites-status" role="status" tabindex="-1" data-i18n="sitesChecking"></p>
+      </div>
+      <p id="sites-help" data-i18n="sitesHelp"></p>
+      <button id="sites" type="button" class="secondary" disabled data-i18n="allowSites"></button>
+      <p id="sites-result" class="feedback" role="status"></p>
+    </section>
   </main>
   <script src="popup.js"></script>
 </body>

@@ -1,6 +1,6 @@
 {
   "extensionName": {
-    "message": "Arara | Browser"
+    "message": "Arara Browser"
   },
   "extensionDescription": {
     "message": "Connects ChatGPT in the browser to the Arara Code chat and lets the IDE AI use your own browser tabs."
@@ -18,10 +18,10 @@
     "message": "Connection code"
   },
   "show": {
-    "message": "Show"
+    "message": "Show code"
   },
   "hide": {
-    "message": "Hide"
+    "message": "Hide code"
   },
   "connect": {
     "message": "Connect"
@@ -33,10 +33,7 @@
     "message": "Invalid code. Copy it again in Arara Code."
   },
   "openIde": {
-    "message": "Open Arara Code and copy the code again."
-  },
-  "available": {
-    "message": "Version $1 is available."
+    "message": "Open Arara Code and try again."
   },
   "current": {
     "message": "Version $1"
@@ -95,11 +92,8 @@
   "allowSites": {
     "message": "Allow all sites"
   },
-  "sitesAllowed": {
-    "message": "The AI can now use your tabs."
-  },
   "sitesDenied": {
-    "message": "Site access was not granted. The AI cannot use your tabs."
+    "message": "Access to all sites was denied."
   },
   "agentWorking": {
     "message": "Arara AI is using this browser"
@@ -112,5 +106,95 @@
   },
   "modelDescription": {
     "message": "Model offered by ChatGPT in the browser."
+  },
+  "checkingConnection": {
+    "message": "Checking connection…"
+  },
+  "connecting": {
+    "message": "Connecting…"
+  },
+  "disconnecting": {
+    "message": "Disconnecting…"
+  },
+  "connectionOffline": {
+    "message": "Arara Code offline"
+  },
+  "disconnectNote": {
+    "message": "Disconnecting can stop requests in progress."
+  },
+  "disconnectFailed": {
+    "message": "Couldn’t disconnect. Try again."
+  },
+  "connectionUnknown": {
+    "message": "Connection status unknown"
+  },
+  "connectionReadFailed": {
+    "message": "Couldn’t read the connection. Reopen the popup to check its status."
+  },
+  "expiredCode": {
+    "message": "Arara Code rejected the code. Copy a new code and try again."
+  },
+  "ideUnexpectedResponse": {
+    "message": "Arara Code returned an unexpected response. Try again."
+  },
+  "siteAccess": {
+    "message": "Site access"
+  },
+  "sitesChecking": {
+    "message": "Checking site access…"
+  },
+  "sitesGranted": {
+    "message": "Access to all sites"
+  },
+  "sitesPartial": {
+    "message": "Access to some sites"
+  },
+  "sitesUnavailable": {
+    "message": "No site access"
+  },
+  "sitesReadFailed": {
+    "message": "Couldn’t check site access."
+  },
+  "sitesRetry": {
+    "message": "Check access again"
+  },
+  "sitesHelp": {
+    "message": "Site access lets Arara AI use your tabs when you ask. Change it in your browser’s extension settings."
+  },
+  "sitesRequesting": {
+    "message": "Requesting access…"
+  },
+  "sitesRequestFailed": {
+    "message": "Couldn’t request access. Check this extension’s permissions in your browser."
+  },
+  "updateRequired": {
+    "message": "Update to version $1 to use Arara Browser."
+  },
+  "updateHelpChromium": {
+    "message": "In Arara Code, open Settings › Arara Browser and select Update. If you download the ZIP, extract it to the installed folder and reload the extension."
+  },
+  "updateHelpFirefox": {
+    "message": "Open the downloaded XPI in Firefox to install the update."
+  },
+  "updateHelpFirefoxZip": {
+    "message": "Extract the ZIP and load its manifest as a temporary extension in Firefox."
+  },
+  "updateOpening": {
+    "message": "Opening download…"
+  },
+  "updateOpened": {
+    "message": "Download opened in a new tab."
+  },
+  "updateOpenFailed": {
+    "message": "Couldn’t open the download. Try again or update from Arara Code."
+  },
+  "uiLanguage": {
+    "message": "en"
+  },
+  "connectionLabel": {
+    "message": "Connection"
+  },
+  "agentFinished": {
+    "message": "Arara AI has stopped using this browser."
   }
 }

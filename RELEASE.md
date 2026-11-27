@@ -1,3 +1,9 @@
+# Arara Browser 0.3.2
+
+Melhora os avisos de conexão, acesso aos sites e atualização, com um popup que se adapta a janelas estreitas e ao tema do navegador.
+
+Adiciona pareamento pelo teclado e avisos de atividade para leitores de tela. O cursor respeita a preferência por movimento reduzido.
+
 # Arara Browser 0.3.1
 
 Simplifica o popup de conexão e reúne as atualizações em um único aviso.

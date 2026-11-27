@@ -1,77 +1,158 @@
 :root {
-  color-scheme: dark;
-  --bg: var(--vscode-editor-background, #111215);
-  --fg: var(--vscode-foreground, #f8f9fa);
-  --muted: var(--vscode-descriptionForeground, #a2a6b0);
-  --border: var(--vscode-widget-border, #30343c);
-  --accent: var(--vscode-button-background, #0d6efd);
-  --control-radius: 5px;
-  --gap: 8px;
-  --section-gap: 12px;
+  color-scheme: light dark;
+  --brand-ink: #111215;
+  --brand-panel: #1a1c20;
+  --brand-paper: #f8f9fa;
+  --brand-blue: #0d6efd;
+  --brand-cyan: #00d2ff;
+  --brand-gold: #ffc107;
+  --surface: var(--brand-paper);
+  --text: var(--brand-ink);
+  --muted: color-mix(in srgb, var(--text) 72%, var(--surface));
+  --field: var(--brand-paper);
+  --raised: color-mix(in srgb, var(--text) 8%, var(--surface));
+  --border: color-mix(in srgb, var(--text) 48%, var(--surface));
+  --divider: color-mix(in srgb, var(--text) 23%, var(--surface));
+  --primary: color-mix(in srgb, var(--brand-blue) 82%, var(--brand-ink));
+  --on-primary: var(--brand-paper);
+  --focus: var(--primary);
+  --attention: color-mix(in srgb, var(--brand-gold) 40%, var(--brand-ink));
+  --popup-width: 21.25rem;
+  --radius: .375rem;
+  --space-xs: .25rem;
+  --space-sm: .5rem;
+  --space-md: .75rem;
+  --space-lg: 1rem;
+  --text-small: .8125rem;
+  --text-body: .875rem;
+  --text-title: 1rem;
+  --control-size: 2.25rem;
+  --font: system-ui, sans-serif;
+  --font-code: ui-monospace, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: var(--brand-ink);
+    --text: var(--brand-paper);
+    --field: var(--brand-panel);
+    --focus: var(--brand-cyan);
+    --attention: var(--brand-gold);
+  }
 }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
 body {
-  width: 340px;
+  inline-size: min(var(--popup-width), 100vw);
+  max-inline-size: 100%;
   margin: 0;
-  background: var(--bg);
-  color: var(--fg);
-  font: 13px/1.5 var(--vscode-font-family, system-ui, sans-serif);
+  background: var(--surface);
+  color: var(--text);
+  font: var(--text-body)/1.45 var(--font);
+  overflow-wrap: anywhere;
 }
 
-main { padding: 20px; }
-header, footer, .actions { display: flex; align-items: center; gap: var(--gap); }
-header { margin-bottom: var(--section-gap); }
-h1 { margin: 0; font-size: inherit; }
-p { margin: 0 0 var(--gap); color: var(--muted); }
-#connection { margin-left: auto; color: var(--muted); }
-#connection[data-connected=true] { color: var(--vscode-testing-iconPassed, #55cf9a); }
-label { display: block; margin-bottom: var(--gap); }
+main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+  padding: var(--space-lg);
+}
+
+main > * + * {
+  border-block-start: 1px solid var(--divider);
+  padding-block-start: var(--space-md);
+}
+
+.brand, .section-heading, .actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-sm);
+}
+
+.section-heading {
+  justify-content: space-between;
+  margin-block-end: var(--space-sm);
+}
+
+.brand img { flex: none; }
+h1, h2, p { margin: 0; }
+h1 { font-size: var(--text-title); font-weight: 650; }
+h2 { font-size: var(--text-body); font-weight: 650; }
+
+#connection, #sites-status {
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+#connection[data-state=connected] { color: var(--focus); }
+label { display: block; font-weight: 550; }
+#instructions, #sites-help, #disconnect-note, #update-help { color: var(--muted); }
+#instructions { margin-block: var(--space-xs) var(--space-sm); }
+
 .code-field { display: flex; }
 
+input, button { min-block-size: var(--control-size); }
+
 input {
-  min-width: 0;
   flex: 1;
+  min-inline-size: 0;
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--border);
-  border-radius: var(--control-radius);
-  padding: 9px;
-  background: var(--vscode-input-background, #1a1c20);
-  color: var(--fg);
-  font: 12px monospace;
+  border-radius: var(--radius);
+  background: var(--field);
+  color: var(--text);
+  font: var(--text-body)/1.45 var(--font-code);
 }
 
-.actions { flex-wrap: wrap; margin-top: var(--section-gap); }
+input[aria-invalid=true] { border-color: var(--attention); }
+.actions { margin-block-start: var(--space-sm); }
 
 button {
-  font: inherit;
-  cursor: pointer;
+  max-inline-size: 100%;
   border: 1px solid transparent;
-  border-radius: var(--control-radius);
-  padding: 7px 12px;
-  color: var(--vscode-button-foreground, #fff);
-  background: var(--accent);
+  border-radius: var(--radius);
+  padding: var(--space-xs) var(--space-md);
+  background: var(--primary);
+  color: var(--on-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-button:hover { filter: brightness(1.12); }
-button:disabled { opacity: .5; cursor: default; }
+button:hover:not(:disabled) { filter: brightness(1.08); }
+button:disabled { opacity: .65; cursor: default; }
+.secondary { background: var(--raised); color: var(--text); border-color: var(--border); }
 
-.secondary {
-  background: var(--vscode-button-secondaryBackground, #252830);
-  color: var(--fg);
-  border-color: var(--border);
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.feedback:not(:empty) { margin-block-start: var(--space-sm); }
+#status, #update-result, #sites-result { color: var(--text); }
+#code[aria-invalid=true] { outline-color: var(--attention); }
+#sites, #update { margin-block-start: var(--space-sm); }
+
+#update-status { color: var(--muted); font-size: var(--text-small); }
+#update-panel[data-blocking=true] {
+  border: 1px solid var(--attention);
+  border-radius: var(--radius);
+  padding: var(--space-md);
+  background: var(--raised);
 }
 
-:focus-visible { outline: 2px solid var(--vscode-focusBorder, #00d2ff); outline-offset: 2px; }
-#status { margin: 0; }
-#status:not(:empty) { margin-top: var(--gap); }
+#update-panel[data-blocking=true] #update-status {
+  margin-block-end: var(--space-xs);
+  color: var(--attention);
+  font-size: var(--text-body);
+  font-weight: 650;
+}
 
-footer {
-  justify-content: space-between;
-  flex-wrap: wrap;
-  margin-top: var(--section-gap);
-  border-top: 1px solid var(--border);
-  padding-top: var(--section-gap);
-  color: var(--muted);
+@media (forced-colors: active) {
+  :root { --focus: Highlight; --attention: CanvasText; }
+  button { border-color: ButtonText; }
+}
+
+@media (pointer: coarse) {
+  :root { --control-size: 3rem; }
 }

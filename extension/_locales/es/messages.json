@@ -1,6 +1,6 @@
 {
   "extensionName": {
-    "message": "Arara | Navegador"
+    "message": "Arara Browser"
   },
   "extensionDescription": {
     "message": "Conecta ChatGPT del navegador al chat de Arara Code y permite que la IA del IDE use las pestañas de tu navegador."
@@ -18,10 +18,10 @@
     "message": "Código de conexión"
   },
   "show": {
-    "message": "Mostrar"
+    "message": "Mostrar código"
   },
   "hide": {
-    "message": "Ocultar"
+    "message": "Ocultar código"
   },
   "connect": {
     "message": "Conectar"
@@ -33,10 +33,7 @@
     "message": "Código no válido. Cópialo de nuevo en Arara Code."
   },
   "openIde": {
-    "message": "Abre Arara Code y copia el código de nuevo."
-  },
-  "available": {
-    "message": "Versión $1 disponible."
+    "message": "Abre Arara Code e inténtalo de nuevo."
   },
   "current": {
     "message": "Versión $1"
@@ -95,11 +92,8 @@
   "allowSites": {
     "message": "Permitir todos los sitios"
   },
-  "sitesAllowed": {
-    "message": "La IA ya puede usar tus pestañas."
-  },
   "sitesDenied": {
-    "message": "No se concedió el acceso a los sitios. La IA no puede usar tus pestañas."
+    "message": "Se rechazó el acceso a todos los sitios."
   },
   "agentWorking": {
     "message": "La IA de Arara está usando este navegador"
@@ -112,5 +106,95 @@
   },
   "modelDescription": {
     "message": "Modelo ofrecido por ChatGPT en el navegador."
+  },
+  "checkingConnection": {
+    "message": "Verificando la conexión…"
+  },
+  "connecting": {
+    "message": "Conectando…"
+  },
+  "disconnecting": {
+    "message": "Desconectando…"
+  },
+  "connectionOffline": {
+    "message": "Arara Code no disponible"
+  },
+  "disconnectNote": {
+    "message": "Desconectar puede interrumpir solicitudes en curso."
+  },
+  "disconnectFailed": {
+    "message": "No se pudo desconectar. Inténtalo de nuevo."
+  },
+  "connectionUnknown": {
+    "message": "Estado de conexión desconocido"
+  },
+  "connectionReadFailed": {
+    "message": "No se pudo consultar la conexión. Vuelve a abrir la ventana para comprobar su estado."
+  },
+  "expiredCode": {
+    "message": "Arara Code rechazó el código. Copia un código nuevo e inténtalo de nuevo."
+  },
+  "ideUnexpectedResponse": {
+    "message": "Arara Code devolvió una respuesta inesperada. Inténtalo de nuevo."
+  },
+  "siteAccess": {
+    "message": "Acceso a sitios"
+  },
+  "sitesChecking": {
+    "message": "Verificando el acceso a sitios…"
+  },
+  "sitesGranted": {
+    "message": "Acceso a todos los sitios"
+  },
+  "sitesPartial": {
+    "message": "Acceso a algunos sitios"
+  },
+  "sitesUnavailable": {
+    "message": "Sin acceso a sitios"
+  },
+  "sitesReadFailed": {
+    "message": "No se pudo verificar el acceso."
+  },
+  "sitesRetry": {
+    "message": "Verificar el acceso de nuevo"
+  },
+  "sitesHelp": {
+    "message": "El acceso permite que la IA de Arara use tus pestañas cuando se lo pidas. Cambia el permiso en la configuración de la extensión en el navegador."
+  },
+  "sitesRequesting": {
+    "message": "Solicitando acceso…"
+  },
+  "sitesRequestFailed": {
+    "message": "No se pudo solicitar el acceso. Revisa los permisos de la extensión en el navegador."
+  },
+  "updateRequired": {
+    "message": "Actualiza a la versión $1 para usar Arara Browser."
+  },
+  "updateHelpChromium": {
+    "message": "En Arara Code, abre Configuración › Arara Browser y elige Actualizar. Si descargas el ZIP, extráelo en la carpeta instalada y vuelve a cargar la extensión."
+  },
+  "updateHelpFirefox": {
+    "message": "Abre el XPI descargado en Firefox para instalar la actualización."
+  },
+  "updateHelpFirefoxZip": {
+    "message": "Extrae el ZIP y carga su manifiesto como extensión temporal en Firefox."
+  },
+  "updateOpening": {
+    "message": "Abriendo la descarga…"
+  },
+  "updateOpened": {
+    "message": "Descarga abierta en una pestaña nueva."
+  },
+  "updateOpenFailed": {
+    "message": "No se pudo abrir la descarga. Inténtalo de nuevo o actualiza desde Arara Code."
+  },
+  "uiLanguage": {
+    "message": "es"
+  },
+  "connectionLabel": {
+    "message": "Conexión"
+  },
+  "agentFinished": {
+    "message": "La IA de Arara ha dejado de usar este navegador."
   }
 }

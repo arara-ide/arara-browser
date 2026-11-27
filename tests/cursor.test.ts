@@ -24,6 +24,48 @@ describe('AI cursor realism', () => {
     const { AraraCursor } = load('cursor.js', { document: { querySelectorAll: () => [] } }) as any;
     expect(AraraCursor.SIZE).toBe(22);
   });
+  it('announces each activity transition once and skips the press animation in reduced motion', async () => {
+    vi.useFakeTimers();
+    const announcements: string[] = [];
+    const classes = { add: vi.fn(), remove: vi.fn() };
+    const roots = new Map<string, { innerHTML: string }>();
+    const pointer = { style: {}, classList: classes };
+    const badge = { style: {}, textContent: '' };
+    const live = { set textContent(text: string) { announcements.push(text); } };
+    const createElement = (name: string) => ({
+      isConnected: false, style: {},
+      remove() { this.isConnected = false; },
+      attachShadow() {
+        const shadow = { innerHTML: '', getElementById: (id: string) => id === 'p' ? pointer : id === 'b' ? badge : live };
+        roots.set(name, shadow);
+        return shadow;
+      },
+    });
+    const { AraraCursor } = load('cursor.js', {
+      document: {
+        querySelectorAll: () => [], createElement,
+        documentElement: { append: (...elements: ReturnType<typeof createElement>[]) => elements.forEach(element => { element.isConnected = true; }) },
+      },
+      chrome: { i18n: { getMessage: (key: string) => key }, runtime: { id: 'extension' } },
+      getComputedStyle: () => ({ zoom: '1' }),
+      matchMedia: () => ({ matches: true }),
+      cancelAnimationFrame: vi.fn(), setTimeout, clearTimeout,
+    }) as any;
+    AraraCursor.render({ active: true, label: 'Working' });
+    AraraCursor.render({ active: true, label: 'Working' });
+    await vi.advanceTimersByTimeAsync(100);
+    expect(announcements).toEqual(['agentWorking']);
+    expect(roots.get('arara-cursor-status')?.innerHTML).toContain('aria-live="polite"');
+    const pressed = AraraCursor.press();
+    expect(classes.add).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(150);
+    await pressed;
+    AraraCursor.render({ active: false });
+    AraraCursor.render({ active: false });
+    await vi.advanceTimersByTimeAsync(100);
+    expect(announcements).toEqual(['agentWorking', 'agentFinished']);
+    expect(AraraCursor.visible).toBe(false);
+  });
   it('focuses the field and waits 500 ms before clearing it and typing the first letter', async () => {
     const events: string[] = [];
     class FakeEvent { type: string; data?: string; key?: string; constructor(type: string, init: Record<string, unknown> = {}) { this.type = type; Object.assign(this, init); } }

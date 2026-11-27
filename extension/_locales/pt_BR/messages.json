@@ -1,6 +1,6 @@
 {
   "extensionName": {
-    "message": "Arara | Navegador"
+    "message": "Arara Browser"
   },
   "extensionDescription": {
     "message": "Conecta o ChatGPT do navegador ao chat do Arara Code e permite que a IA da IDE use as abas do seu navegador."
@@ -18,10 +18,10 @@
     "message": "Código de conexão"
   },
   "show": {
-    "message": "Mostrar"
+    "message": "Mostrar código"
   },
   "hide": {
-    "message": "Ocultar"
+    "message": "Ocultar código"
   },
   "connect": {
     "message": "Conectar"
@@ -33,10 +33,7 @@
     "message": "Código inválido. Copie de novo no Arara Code."
   },
   "openIde": {
-    "message": "Abra o Arara Code e copie o código de novo."
-  },
-  "available": {
-    "message": "Versão $1 disponível."
+    "message": "Abra o Arara Code e tente de novo."
   },
   "current": {
     "message": "Versão $1"
@@ -95,11 +92,8 @@
   "allowSites": {
     "message": "Permitir todos os sites"
   },
-  "sitesAllowed": {
-    "message": "A IA já pode usar suas abas."
-  },
   "sitesDenied": {
-    "message": "O acesso aos sites não foi concedido. A IA não pode usar suas abas."
+    "message": "O acesso a todos os sites foi recusado."
   },
   "agentWorking": {
     "message": "A IA do Arara está usando este navegador"
@@ -112,5 +106,95 @@
   },
   "modelDescription": {
     "message": "Modelo oferecido pelo ChatGPT no navegador."
+  },
+  "checkingConnection": {
+    "message": "Verificando conexão…"
+  },
+  "connecting": {
+    "message": "Conectando…"
+  },
+  "disconnecting": {
+    "message": "Desconectando…"
+  },
+  "connectionOffline": {
+    "message": "Arara Code indisponível"
+  },
+  "disconnectNote": {
+    "message": "Desconectar pode interromper pedidos em andamento."
+  },
+  "disconnectFailed": {
+    "message": "Não foi possível desconectar. Tente de novo."
+  },
+  "connectionUnknown": {
+    "message": "Estado da conexão desconhecido"
+  },
+  "connectionReadFailed": {
+    "message": "Não foi possível ler a conexão. Reabra o popup para conferir o estado."
+  },
+  "expiredCode": {
+    "message": "O Arara Code recusou o código. Copie um novo código e tente de novo."
+  },
+  "ideUnexpectedResponse": {
+    "message": "O Arara Code retornou uma resposta inesperada. Tente de novo."
+  },
+  "siteAccess": {
+    "message": "Acesso aos sites"
+  },
+  "sitesChecking": {
+    "message": "Verificando acesso aos sites…"
+  },
+  "sitesGranted": {
+    "message": "Acesso a todos os sites"
+  },
+  "sitesPartial": {
+    "message": "Acesso a alguns sites"
+  },
+  "sitesUnavailable": {
+    "message": "Sem acesso aos sites"
+  },
+  "sitesReadFailed": {
+    "message": "Não foi possível verificar o acesso."
+  },
+  "sitesRetry": {
+    "message": "Verificar acesso de novo"
+  },
+  "sitesHelp": {
+    "message": "O acesso permite que a IA do Arara use suas abas quando você pedir. Altere a permissão nas configurações da extensão no navegador."
+  },
+  "sitesRequesting": {
+    "message": "Solicitando acesso…"
+  },
+  "sitesRequestFailed": {
+    "message": "Não foi possível solicitar acesso. Confira as permissões da extensão nas configurações do navegador."
+  },
+  "updateRequired": {
+    "message": "Atualize para a versão $1 para usar o Arara Browser."
+  },
+  "updateHelpChromium": {
+    "message": "No Arara Code, abra Configurações › Arara Browser e escolha Atualizar. Se baixar o ZIP, extraia na pasta instalada e recarregue a extensão."
+  },
+  "updateHelpFirefox": {
+    "message": "Abra o XPI baixado no Firefox para instalar a atualização."
+  },
+  "updateHelpFirefoxZip": {
+    "message": "Extraia o ZIP e carregue o manifesto como extensão temporária no Firefox."
+  },
+  "updateOpening": {
+    "message": "Abrindo download…"
+  },
+  "updateOpened": {
+    "message": "Download aberto em uma nova aba."
+  },
+  "updateOpenFailed": {
+    "message": "Não foi possível abrir o download. Tente de novo ou atualize pelo Arara Code."
+  },
+  "uiLanguage": {
+    "message": "pt-BR"
+  },
+  "connectionLabel": {
+    "message": "Conexão"
+  },
+  "agentFinished": {
+    "message": "A IA do Arara parou de usar este navegador."
   }
 }
